@@ -61,3 +61,16 @@ runs:
 - financial health scoring endpoint
 - one complete MSME profile detail page
 - Credit Copilot AI lending brief in mock mode
+
+## Frontend
+
+```bash
+cd apps/web
+npm install
+npm run dev
+npm run lint
+npm run typecheck
+npm run build
+```
+
+By default the Phase 2 frontend reads the FastAPI backend from `http://localhost:8000`. Override with `NEXT_PUBLIC_API_BASE_URL` if the API runs elsewhere.
