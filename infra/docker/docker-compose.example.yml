@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: lendsignal
+      POSTGRES_PASSWORD: lendsignal
+      POSTGRES_DB: lendsignal
+    ports:
+      - "5432:5432"
+    volumes:
+      - lendsignal_postgres:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+volumes:
+  lendsignal_postgres:
