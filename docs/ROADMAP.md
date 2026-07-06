@@ -28,7 +28,7 @@ Turn research into implementation-grade docs.
 
 Create/update:
 
-- PRODUCT_BRIEF
+- PROJECT_BRIEF
 - ARCHITECTURE
 - API_CONTRACTS
 - DATA_MODEL
@@ -237,7 +237,7 @@ Make submission memorable.
 
 ### Scope
 
-- 5–7 strong synthetic profiles
+- at least 8 strong synthetic profiles
 - flagship demo profile
 - demo script
 - pitch notes

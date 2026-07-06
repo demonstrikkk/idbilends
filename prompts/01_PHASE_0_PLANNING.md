@@ -1,4 +1,4 @@
-# 01_PHASE_0_RESEARCH_TO_SPEC.md
+# 01_PHASE_0_PLANNING.md
 
 You are implementing Phase 0: Research-to-Spec Conversion.
 
@@ -11,7 +11,7 @@ Your job is to convert the research and strategy into precise engineering docume
 Read:
 
 1. `docs/RESEARCH_BLUEPRINT.md`
-2. `00_MASTER_CODEX_PROMPT_DEEP.md`
+2. `prompts/00_MASTER_CODEX_PROMPT.md`
 3. `AGENTS.md`, if present
 4. Existing docs, if present
 
@@ -43,7 +43,7 @@ Extract only what is useful for building this project. Do not copy huge research
 Create or rewrite these files:
 
 ```txt
-docs/PRODUCT_SPEC.md
+docs/PROJECT_BRIEF.md
 docs/ARCHITECTURE.md
 docs/API_CONTRACTS.md
 docs/DATA_MODEL.md
@@ -57,7 +57,7 @@ docs/DEMO_STRATEGY.md
 
 ## Required depth for each file
 
-### `docs/PRODUCT_SPEC.md`
+### `docs/PROJECT_BRIEF.md`
 
 Must include:
 
@@ -295,5 +295,4 @@ Tests/checks
 Known limitations
 Next recommended phase
 ```
-
 

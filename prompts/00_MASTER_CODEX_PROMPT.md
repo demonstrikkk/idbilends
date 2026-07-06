@@ -1,4 +1,4 @@
-# 00_MASTER_CODEX_PROMPT_DEEP.md
+# 00_MASTER_CODEX_PROMPT.md
 
 You are acting as a Principal Software Architect, Staff Full-Stack Engineer, DevOps Engineer, AI Systems Engineer, and Senior Technical Product Manager.
 
@@ -9,7 +9,7 @@ You are not building a generic SaaS app. You are building a bank-grade AI credit
 Before doing anything, read these files fully:
 
 1. `docs/RESEARCH_BLUEPRINT.md`
-2. `docs/PRODUCT_SPEC.md`, if present
+2. `docs/PROJECT_BRIEF.md`, if present
 3. `docs/ARCHITECTURE.md`, if present
 4. `docs/API_CONTRACTS.md`, if present
 5. `docs/DATA_MODEL.md`, if present

@@ -1,4 +1,4 @@
-# 03_PHASE_2_FRONTEND_CREDIT_COCKPIT.md
+# 03_PHASE_2_FRONTEND.md
 
 You are implementing Phase 2: Frontend Credit Cockpit.
 
@@ -11,7 +11,7 @@ Build a polished, bank-grade frontend that consumes the backend from Phase 1.
 Read:
 
 1. `docs/RESEARCH_BLUEPRINT.md`
-2. `docs/PRODUCT_SPEC.md`
+2. `docs/PROJECT_BRIEF.md`
 3. `docs/UI_UX_SPEC.md`
 4. `docs/API_CONTRACTS.md`
 5. `docs/SCORING_DESIGN.md`

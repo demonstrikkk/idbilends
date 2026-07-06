@@ -1,4 +1,4 @@
-# 02_PHASE_1_BACKEND_CREDIT_ENGINE.md
+# 02_PHASE_1_BACKEND.md
 
 You are implementing Phase 1: Backend Credit Engine.
 
@@ -11,7 +11,7 @@ Build the backend foundation that every later layer depends on.
 Read:
 
 1. `docs/RESEARCH_BLUEPRINT.md`
-2. `docs/PRODUCT_SPEC.md`
+2. `docs/PROJECT_BRIEF.md`
 3. `docs/ARCHITECTURE.md`
 4. `docs/API_CONTRACTS.md`
 5. `docs/DATA_MODEL.md`

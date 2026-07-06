@@ -11,7 +11,7 @@ Read:
 
 1. `docs/RESEARCH_BLUEPRINT.md`
 2. `docs/DEMO_STRATEGY.md`
-3. `docs/PRODUCT_SPEC.md`
+3. `docs/PROJECT_BRIEF.md`
 4. `docs/UI_UX_SPEC.md`
 5. `docs/AGENTIC_AI_DESIGN.md`
 6. `docs/SCORING_DESIGN.md`

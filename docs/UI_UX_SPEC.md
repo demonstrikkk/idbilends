@@ -49,9 +49,9 @@ Primary nav:
 
 - Dashboard
 - MSMEs
-- Risk Intelligence
-- Credit Copilot
 - Governance
+
+For MVP, Risk Intelligence and Credit Copilot should be first-class sections within the MSME detail page, not separate top-level pages that would require standalone APIs beyond the current contract.
 
 ## 4. Dashboard
 
@@ -108,6 +108,14 @@ Tabs/sections:
   - Credit Copilot
   - Audit/Governance
 ```
+
+API mapping for this page:
+
+- `GET /msmes/{id}` for profile, financial snapshot, and documents
+- `POST /scores/{id}/generate` for score, tier, confidence, warnings, and calculation trace
+- `GET /prospects/{id}/signals` for prospect readiness
+- `POST /copilot/{id}/brief` for Credit Copilot output
+- `GET /audit/{id}` for audit timeline
 
 ## 6. Score panel
 
@@ -169,6 +177,7 @@ Must show:
 Must show:
 
 - Generate brief button
+- summary
 - executive summary
 - final lending brief
 - follow-up questions
@@ -188,6 +197,12 @@ Must show:
 - latest audit events
 - agent traces
 - health/readiness status
+
+API mapping for governance:
+
+- `GET /health`
+- `GET /ready`
+- `GET /audit/{id}` for the selected MSME context in MVP
 
 ## 12. Empty/loading/error states
 

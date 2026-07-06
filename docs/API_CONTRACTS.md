@@ -381,6 +381,7 @@ Response 200:
 {
   "id": "brief_001",
   "msme_id": "msme_001",
+  "summary": "Moderate-low risk profile with stable inflows, partial document coverage, and a moderated limit recommendation for human review.",
   "executive_summary": "Sharma Tools appears suitable for a moderated working-capital review, supported by stable cashflows and good digital payment behavior.",
   "data_quality_observations": "Data confidence is high, but ITR-like data is missing and GST-like filings are partial for the last quarter.",
   "credit_analyst_explanation": "The score is supported by stable inflows, low bounce behavior, and healthy order completion. The suggested limit is lower than the requested amount due to buyer concentration and partial document coverage.",
@@ -497,6 +498,6 @@ Frontend should treat these as canonical:
 - `missing_data_warnings`
 - `early_warning_triggers`
 - `decision_support_only`
-- `trace`
+- `calculation_trace`
 
 Do not derive these from raw financials in the frontend.

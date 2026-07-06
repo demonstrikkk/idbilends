@@ -246,6 +246,8 @@ Stores deterministic score result.
 | suggested_credit_max | int | yes | Upper suggested range | 1450000 |
 | requested_credit_amount | int | yes | Requested amount | 2000000 |
 | recommendation | enum | yes | Human-review action | consider_with_conditions |
+| recommended_human_action | text | yes | Officer review guidance | Verify latest GST-like filing before limit discussion |
+| decision_support_only | bool | yes | Must remain true | true |
 | positive_factors | json array | yes | ScoreFactor[] | [] |
 | negative_factors | json array | yes | ScoreFactor[] | [] |
 | missing_data_warnings | json array | yes | Warnings | [] |
@@ -277,6 +279,7 @@ Stores Prospect Assist result.
 | likely_credit_need | string | yes | Need class | working_capital |
 | best_product_fit | string | yes | Product class | msme_working_capital |
 | next_best_action | string | yes | RM action | Request latest GST filing |
+| outreach_timing | string | yes | Suggested timing window | within_7_days |
 | signals | json array | yes | Supporting signals | [] |
 | created_at | datetime | yes | Created time | 2026-07-06T10:00:00Z |
 
@@ -296,6 +299,7 @@ Stores controlled AI output.
 |---|---:|---:|---|---|
 | id | string/UUID | yes | Brief id | brief_001 |
 | msme_id | FK | yes | Parent MSME | msme_001 |
+| summary | text | yes | Required short summary | Moderate-low risk profile with document follow-up needed |
 | executive_summary | text | yes | Short summary | ... |
 | data_quality_observations | text | yes | Node output | ... |
 | credit_analyst_explanation | text | yes | Node output | ... |
@@ -330,7 +334,7 @@ Records agent graph steps.
 |---|---:|---:|---|---|
 | step_id | string | yes | Step id | step_001 |
 | step_name | string | yes | Tool/node name | data_quality_node |
-| step_type | enum | yes | tool/node/provider | node |
+| step_type | enum | yes | tool/agent_node/provider | agent_node |
 | status | enum | yes | success/failure/skipped | success |
 | started_at | datetime | no | Step start | ... |
 | ended_at | datetime | no | Step end | ... |

@@ -165,6 +165,7 @@ Inputs:
 
 Outputs:
 
+- short summary
 - final bank-officer-ready brief
 - assumptions
 - recommended human action
@@ -214,6 +215,7 @@ Every prompt must include:
 
 ```json
 {
+  "summary": "...",
   "executive_summary": "...",
   "data_quality_observations": "...",
   "credit_analyst_explanation": "...",
@@ -247,6 +249,7 @@ Credit Copilot must not:
 Credit Copilot must:
 
 - cite internal inputs
+- include a short summary field
 - show assumptions
 - show confidence
 - recommend human verification
