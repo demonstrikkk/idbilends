@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import audit, demo, health, msmes, prospects, scores
+from app.api.routes import audit, copilot, credit_file, demo, health, msmes, portfolio, prospects, scores
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.core.security import RequestIdMiddleware
@@ -19,7 +19,21 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     register_error_handlers(app)
-    for router in [health.router, demo.router, msmes.router, scores.router, prospects.router, audit.router]:
+    for router in [
+        health.router,
+        demo.router,
+        msmes.router,
+        scores.router,
+        prospects.router,
+        copilot.router,
+        credit_file.router,
+        audit.router,
+        portfolio.portfolio_router,
+        portfolio.watchlist_router,
+        portfolio.alerts_router,
+        portfolio.insights_router,
+        portfolio.model_monitor_router,
+    ]:
         app.include_router(router)
     return app
 

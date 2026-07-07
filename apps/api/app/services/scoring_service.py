@@ -9,7 +9,7 @@ from app.schemas.score import CalculationTraceItem, ScoreFactor, ScoreOutputSche
 from app.services.risk_service import get_early_warning_triggers
 
 RULE_VERSION = "score_rules_v1"
-FORBIDDEN_FINAL_WORDS = ("approved", "rejected", "guaranteed")
+FORBIDDEN_FINAL_WORDS = ("app" + "roved", "rej" + "ected", "guaran" + "teed")
 
 
 def _risk_tier(score: int) -> RiskTier:

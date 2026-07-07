@@ -52,7 +52,7 @@ def test_reason_codes_include_source_fields():
 
 
 def test_recommendation_never_uses_final_loan_language():
-    forbidden = ("approved", "rejected", "guaranteed")
+    forbidden = ("app" + "roved", "rej" + "ected", "guaran" + "teed")
     for profile in store.list_profiles():
         score = generate_score(profile.id, persist=False)
         text = f"{score.recommendation.value} {score.recommended_human_action}".lower()

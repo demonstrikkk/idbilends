@@ -1,0 +1,54 @@
+from fastapi import APIRouter
+
+from app.schemas.portfolio import (
+    AlertsResponse,
+    ModelMonitorSnapshotResponse,
+    PortfolioCasesResponse,
+    PortfolioInsightsResponse,
+    PortfolioSummaryResponse,
+    WatchlistResponse,
+)
+from app.services.portfolio_service import (
+    get_alerts,
+    get_model_monitor_snapshot,
+    get_portfolio_cases,
+    get_portfolio_insights,
+    get_portfolio_summary,
+    get_watchlist,
+)
+
+portfolio_router = APIRouter(prefix="/portfolio", tags=["portfolio"])
+watchlist_router = APIRouter(prefix="/watchlist", tags=["watchlist"])
+alerts_router = APIRouter(prefix="/alerts", tags=["alerts"])
+insights_router = APIRouter(prefix="/insights", tags=["insights"])
+model_monitor_router = APIRouter(prefix="/model-monitor", tags=["model-monitor"])
+
+
+@portfolio_router.get("/cases", response_model=PortfolioCasesResponse)
+def portfolio_cases() -> PortfolioCasesResponse:
+    return get_portfolio_cases()
+
+
+@portfolio_router.get("/summary", response_model=PortfolioSummaryResponse)
+def portfolio_summary() -> PortfolioSummaryResponse:
+    return get_portfolio_summary()
+
+
+@watchlist_router.get("", response_model=WatchlistResponse)
+def watchlist() -> WatchlistResponse:
+    return get_watchlist()
+
+
+@alerts_router.get("", response_model=AlertsResponse)
+def alerts() -> AlertsResponse:
+    return get_alerts()
+
+
+@insights_router.get("/portfolio", response_model=PortfolioInsightsResponse)
+def portfolio_insights() -> PortfolioInsightsResponse:
+    return get_portfolio_insights()
+
+
+@model_monitor_router.get("/snapshot", response_model=ModelMonitorSnapshotResponse)
+def model_monitor_snapshot() -> ModelMonitorSnapshotResponse:
+    return get_model_monitor_snapshot()

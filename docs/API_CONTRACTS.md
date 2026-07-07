@@ -359,6 +359,26 @@ Response 200:
 
 ## 10. Credit Copilot
 
+### GET /copilot/provider/status
+
+Purpose:
+
+Show configured Copilot provider state without exposing secrets.
+
+Response 200:
+
+```json
+{
+  "configured_provider": "mock",
+  "groq_configured": false,
+  "streaming_enabled": true,
+  "stream_model": "llama-3.3-70b-versatile",
+  "structured_model": "openai/gpt-oss-20b",
+  "active_default_provider": "mock",
+  "message": null
+}
+```
+
 ### POST /copilot/{msme_id}/brief
 
 Purpose:
@@ -432,6 +452,29 @@ Response 200:
 ```
 
 ## 11. Audit
+
+## 11A. Frontend Aggregation
+
+Purpose:
+
+Reduce frontend fan-out by returning current derived snapshots from existing backend services.
+
+Endpoints:
+
+```txt
+GET /portfolio/cases
+GET /portfolio/summary
+GET /watchlist
+GET /alerts
+GET /insights/portfolio
+GET /model-monitor/snapshot
+```
+
+Rules:
+
+- derive from synthetic profiles, deterministic scoring, Prospect Assist, risk triggers, document warnings, transaction summaries, audit services, and documented metadata
+- do not fabricate model history, report history, policy databases, alert persistence, or owner queues
+- keep existing profile, score, prospect, Copilot, and audit endpoints working
 
 ### GET /audit/{msme_id}
 

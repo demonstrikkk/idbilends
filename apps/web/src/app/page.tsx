@@ -1,53 +1,48 @@
 import Link from "next/link";
-import { ArrowRight, FileSearch, ShieldCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import { decisionSupportCopy } from "@/lib/constants";
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-ink text-slate-100">
+    <main className="min-h-screen bg-workspace text-ink">
       <div className="mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-6 py-12">
-        <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
-          <section>
-            <div className="mb-6 text-sm font-medium text-cyan">LendSignal 360</div>
-            <h1 className="max-w-3xl text-4xl font-semibold leading-tight sm:text-5xl">
-              One controlled workflow for MSME prospect triage, financial health scoring, and credit-case review.
-            </h1>
-            <p className="mt-6 max-w-2xl text-base leading-7 text-slate-300">
-              Built for bank officers who need deterministic score outputs, prospect readiness signals, reason evidence, missing-data visibility, and auditable next human actions.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/dashboard" className="inline-flex items-center gap-2 bg-cyan px-5 py-3 text-sm font-semibold text-ink">
-                Open assessment queue
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link href="/governance" className="inline-flex items-center gap-2 border border-line px-5 py-3 text-sm font-semibold text-slate-100">
-                View diagnostics
-              </Link>
+        <section className="rounded-md border border-line bg-surface p-8 shadow-cockpit">
+          <div className="mb-8 flex items-center justify-between gap-4 border-b border-line pb-5">
+            <div className="font-serif text-2xl font-semibold">LendSignal 360</div>
+            <span className="rounded border border-amber/25 bg-amber/10 px-3 py-1 text-xs font-semibold text-[#8a5a0a]">Decision-support only</span>
+          </div>
+          <div className="grid gap-10 lg:grid-cols-[1fr_0.75fr]">
+            <div>
+              <h1 className="max-w-3xl font-serif text-4xl font-semibold leading-tight sm:text-5xl">
+                MSME credit intelligence from prospect discovery to governed human review.
+              </h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-muted">
+                A bank-grade cockpit for Financial Health Score, Prospect Readiness, suggested credit posture, verification gaps, risk monitoring, and audit context.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link href="/dashboard" className="inline-flex items-center gap-2 rounded bg-ink px-5 py-3 text-sm font-semibold text-white hover:bg-navy">
+                  Open Overview
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/msmes" className="inline-flex items-center gap-2 rounded border border-line px-5 py-3 text-sm font-semibold text-ink hover:bg-panel2">
+                  Credit Review
+                </Link>
+              </div>
             </div>
-          </section>
-          <section className="border border-line bg-panel shadow-cockpit">
-            <div className="border-b border-line px-5 py-4 text-sm font-semibold">Credit workflow boundary</div>
-            <div className="divide-y divide-line">
-              {[
-                ["Financial Health Score", "Deterministic score, risk tier, confidence, credit range, and reason factors come from the backend score engine."],
-                ["Prospect Readiness", "Relationship prioritization uses backend Prospect Assist signals, not frontend scoring."],
-                ["Credit Copilot", "Phase 2 shows only a placeholder. AI brief generation is deferred to the controlled agent phase."]
-              ].map(([title, body]) => (
-                <div key={title} className="flex gap-4 px-5 py-5">
-                  <FileSearch className="mt-1 h-5 w-5 shrink-0 text-cyan" />
-                  <div>
-                    <div className="font-semibold">{title}</div>
-                    <p className="mt-1 text-sm leading-6 text-slate-300">{body}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="rounded-md border border-line bg-subtle p-5">
+              <div className="text-sm font-semibold">Workflow Boundary</div>
+              <div className="mt-4 space-y-4 text-sm leading-6 text-muted">
+                <p>Financial health scoring, risk tiers, confidence, suggested credit range, and reason factors come from backend deterministic services.</p>
+                <p>Prospect Assist signals and next-best-action guidance come from the backend Prospect Assist service.</p>
+                <p>Credit Copilot remains a Phase 3 placeholder in this frontend redesign.</p>
+              </div>
+              <div className="mt-5 rounded border border-amber/25 bg-amber/10 p-3 text-sm leading-6 text-ink">
+                <ShieldCheck className="mr-2 inline h-4 w-4 text-amber" />
+                {decisionSupportCopy}
+              </div>
             </div>
-            <div className="border-t border-amber/40 bg-amber/10 px-5 py-4 text-sm leading-6 text-slate-200">
-              <ShieldCheck className="mr-2 inline h-4 w-4 text-amber" />
-              {decisionSupportCopy}
-            </div>
-          </section>
-        </div>
+          </div>
+        </section>
       </div>
     </main>
   );

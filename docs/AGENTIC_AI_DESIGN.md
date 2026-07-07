@@ -187,6 +187,13 @@ AI_PROVIDER=mock
 
 The app must work without paid API keys.
 
+Phase 3 implementation uses `BaseCopilotProvider` with `MockCopilotProvider`, `GroqCopilotProvider`, and `DisabledCopilotProvider`. Groq structured output and streaming are treated separately:
+
+- `POST /copilot/{msme_id}/brief` returns a final validated JSON object.
+- `GET /copilot/{msme_id}/brief/stream` streams progress and narrative tokens, then emits the same validated object in the final SSE event.
+
+Only sanitized context is sent to providers: profile summary, deterministic score output, prospect signals, risk factors, missing documents, and a derived transaction summary. Raw bank statement rows, real identifiers, contact fields, secrets, and logs are excluded.
+
 ## 8. Prompt files
 
 Store prompts as versioned files:

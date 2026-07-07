@@ -16,11 +16,11 @@ export function RiskDistributionChart({ items }: { items: MSMEListItem[] }) {
     <div className="h-72 p-4">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data}>
-          <CartesianGrid stroke="#284156" vertical={false} />
-          <XAxis dataKey="tier" tick={{ fill: "#8aa0b3", fontSize: 11 }} tickLine={false} axisLine={{ stroke: "#284156" }} />
-          <YAxis tick={{ fill: "#8aa0b3", fontSize: 11 }} tickLine={false} axisLine={{ stroke: "#284156" }} allowDecimals={false} />
-          <Tooltip contentStyle={{ background: "#122334", border: "1px solid #284156", color: "#e8f0f6" }} />
-          <Bar dataKey="count" fill="#42d4c8" radius={[0, 0, 0, 0]} />
+          <CartesianGrid stroke="#d9e2ec" vertical={false} />
+          <XAxis dataKey="tier" tick={{ fill: "#66758a", fontSize: 11 }} tickLine={false} axisLine={{ stroke: "#d9e2ec" }} />
+          <YAxis tick={{ fill: "#66758a", fontSize: 11 }} tickLine={false} axisLine={{ stroke: "#d9e2ec" }} allowDecimals={false} />
+          <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #d9e2ec", color: "#071b3a" }} />
+          <Bar dataKey="count" fill="#1f6feb" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

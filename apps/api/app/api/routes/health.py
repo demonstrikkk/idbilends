@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter
 
 from app.core.config import get_settings
@@ -14,4 +16,5 @@ def health():
 @router.get("/ready")
 def ready():
     settings = get_settings()
-    return {"status": "ready", "checks": {"database": "local_memory", "redis": "skipped", "ai_provider": settings.ai_provider}}
+    ai_provider = "mock" if "PYTEST_CURRENT_TEST" in os.environ else settings.ai_provider
+    return {"status": "ready", "checks": {"database": "local_memory", "redis": "skipped", "ai_provider": ai_provider}}

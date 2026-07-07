@@ -1,37 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
-import { Panel } from "@/components/ui/Panel";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/State";
-import { MSMETable } from "@/components/dashboard/MSMETable";
-import { getMSMEs } from "@/lib/api/msmes";
+import { SignalTable, HumanActionQueue } from "@/components/ui/Cockpit";
+import { Panel } from "@/components/ui/Panel";
+import { usePortfolioCases, isReviewRequired } from "@/hooks/usePortfolioCases";
 
 export default function MSMEListPage() {
   const [search, setSearch] = useState("");
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["msmes", { search }],
-    queryFn: () => getMSMEs({ search })
-  });
+  const { cases, isLoading, isError, seedAndRefresh } = usePortfolioCases();
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return cases;
+    return cases.filter(({ item }) => `${item.business_name} ${item.city} ${item.state} ${item.segment}`.toLowerCase().includes(term));
+  }, [cases, search]);
+  const actionQueue = filtered.filter(isReviewRequired);
 
   return (
-    <AppShell>
-      <div className="mb-5 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
-        <div>
-          <h1 className="text-2xl font-semibold">MSME cases</h1>
-          <p className="mt-2 text-sm text-muted">Search synthetic MSME profiles and open a credit review case.</p>
-        </div>
-        <label className="flex w-full max-w-sm items-center gap-2 border border-line bg-panel px-3 py-2">
+    <AppShell
+      title="Credit File"
+      subtitle="Search and open backend-backed MSME credit files for underwriting review."
+      actions={
+        <label className="flex h-9 w-full max-w-sm items-center gap-2 rounded border border-line bg-white px-3 text-sm">
           <Search className="h-4 w-4 text-muted" />
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search business or city" className="w-full bg-transparent text-sm outline-none placeholder:text-muted" />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search business or city" className="w-full border-0 bg-transparent outline-none placeholder:text-muted" />
         </label>
-      </div>
-      {isLoading ? <LoadingState /> : isError ? <ErrorState label="Unable to load MSME profiles from the backend." /> : !data?.items.length ? <EmptyState label="No MSME profiles match the current search." /> : (
-        <Panel title="Case register">
-          <MSMETable items={data.items} />
-        </Panel>
+      }
+    >
+      {isLoading ? <LoadingState /> : isError ? <ErrorState label="Unable to load MSME review cases from the backend." /> : !cases.length ? (
+        <EmptyState label="No MSME profiles found. Seed demo data to start the credit intelligence walkthrough." onSeed={seedAndRefresh} />
+      ) : (
+        <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
+          <SignalTable cases={filtered} title="Credit File Register" />
+          <Panel title="Recommended Human Action">
+            <HumanActionQueue cases={actionQueue.length ? actionQueue : filtered} />
+          </Panel>
+        </div>
       )}
     </AppShell>
   );

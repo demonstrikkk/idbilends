@@ -8,10 +8,10 @@ type PanelProps = HTMLAttributes<HTMLDivElement> & {
 
 export function Panel({ title, action, className, children, ...props }: PanelProps) {
   return (
-    <section className={cn("border border-line bg-panel/72 shadow-cockpit", className)} {...props}>
+    <section className={cn("rounded-md border border-line bg-surface shadow-cockpit", className)} {...props}>
       {(title || action) && (
         <div className="flex min-h-12 items-center justify-between border-b border-line px-4 py-3">
-          {title ? <h2 className="text-sm font-semibold text-slate-100">{title}</h2> : <span />}
+          {title ? <h2 className="text-sm font-semibold text-ink">{title}</h2> : <span />}
           {action}
         </div>
       )}

@@ -31,8 +31,7 @@ export async function apiFetch<T>(path: string, schema: z.ZodType<T>, options: A
     headers: {
       "Content-Type": "application/json"
     },
-    body: options.body ? JSON.stringify(options.body) : undefined,
-    cache: "no-store"
+    body: options.body ? JSON.stringify(options.body) : undefined
   });
 
   const payload: unknown = await response.json().catch(() => null);
