@@ -1,6 +1,16 @@
 # Manual QA Checklist
 
+For the Phase 7 rescue pass, also run [Product Rescue QA](PRODUCT_RESCUE_QA.md).
+
 Phase: 6 Live Credit Monitoring + Scale Simulation
+
+## Command Center
+
+- Open `/command-center`; confirm the table can search, filter, sort, and paginate 1000 synthetic MSME cases.
+- Select one row; confirm the right-side preview opens immediately with score, delta, blocker, latest event, and recommended human action.
+- Open the evidence drawer from the preview and confirm the document file opens.
+- Open Copilot from the preview and ask "Why did this score change?" and "Which evidence blocks this case?"
+- Start monitoring once, inject one event, and confirm only one score update is shown for the affected case.
 
 ## Core Workflow
 

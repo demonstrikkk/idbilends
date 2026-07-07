@@ -11,6 +11,7 @@ from app.core.config import get_settings
 from app.schemas.common import utc_now
 from app.schemas.credit_file import CopilotChatRequest, CopilotChatResponse
 from app.services.audit_service import create_audit_event
+from app.services.evidence_service import list_evidence_records
 from app.services.portfolio_service import get_portfolio_cases
 from app.services.score_history_service import get_latest_delta, get_score_movements
 
@@ -109,7 +110,7 @@ async def chat_with_copilot(msme_id: str, payload: CopilotChatRequest, request: 
     graph = CreditCopilotGraph(provider)
     brief = await graph.generate_brief(msme_id, request_id=request.state.request_id)
     question = payload.message.strip()
-    answer = _chat_answer(question, brief)
+    answer = _chat_answer(question, brief, msme_id)
     create_audit_event(
         "copilot_chat_generated",
         msme_id,
@@ -124,7 +125,7 @@ async def chat_with_copilot(msme_id: str, payload: CopilotChatRequest, request: 
     return CopilotChatResponse(
         answer=answer,
         decision_support_only=True,
-        cited_internal_inputs=brief.cited_internal_inputs,
+        cited_internal_inputs=_chat_citations(msme_id, brief.cited_internal_inputs),
         trace=brief.trace if payload.include_trace else [],
         provider=brief.provider,
         model=brief.model,
@@ -195,16 +196,27 @@ def _stream_response(msme_id: str, request: Request, mode: str | None) -> Stream
     )
 
 
-def _chat_answer(question: str, brief: CopilotBriefPayload) -> str:
+def _chat_answer(question: str, brief: CopilotBriefPayload, msme_id: str) -> str:
     lower = question.lower()
+    evidence = list_evidence_records(msme_id)
+    delta = get_latest_delta(msme_id)
+    evidence_blockers = [record for record in evidence if record.status in {"missing", "partial", "stale"}]
+    evidence_text = "; ".join(f"{record.id} ({record.document_name}: {record.status})" for record in evidence_blockers[:3]) or "No blocking evidence record is open in the seeded evidence set."
+    delta_text = (
+        f" Latest score delta {delta.id}: {delta.previous_score} -> {delta.new_score} ({delta.delta}); changed features: {', '.join(delta.changed_features) or 'not available'}."
+        if delta
+        else " No score delta is recorded yet; start monitoring or inject an event to create one."
+    )
     if "rm" in lower or "follow" in lower or "note" in lower:
         focus = (
             "RM follow-up note: Please request the open evidence items, verify recent turnover and collection behavior, "
             "and confirm whether the requested working-capital need matches current order or receivable activity. "
-            f"Use this context: {brief.prospect_assist_recommendation}"
+            f"Open evidence: {evidence_text}. Use this context: {brief.prospect_assist_recommendation}"
         )
+    elif "change" in lower or "delta" in lower or "score change" in lower:
+        focus = f"Score change explanation:{delta_text} Cite the monitoring event and score history before routing the case."
     elif "block" in lower or "missing" in lower or "evidence" in lower or "document" in lower:
-        focus = f"Primary blocker and evidence request: {brief.data_quality_observations}"
+        focus = f"Primary blocker and evidence request: {brief.data_quality_observations} Cited evidence records: {evidence_text}."
     elif "confidence" in lower or "signal" in lower:
         focus = (
             f"Confidence driver: {brief.data_quality_observations} "
@@ -225,3 +237,12 @@ def _chat_answer(question: str, brief: CopilotBriefPayload) -> str:
         f"Recommended human action: {brief.recommended_human_action}\n\n"
         "Decision-support only: this Copilot answer explains internal score, prospect, risk, and evidence inputs for human review. It does not issue a final credit decision."
     )
+
+
+def _chat_citations(msme_id: str, base_inputs: list[str]) -> list[str]:
+    citations = list(dict.fromkeys(base_inputs))
+    citations.extend(f"evidence:{record.id}" for record in list_evidence_records(msme_id)[:4])
+    delta = get_latest_delta(msme_id)
+    if delta:
+        citations.extend([f"score_history:{delta.id}", f"score_delta_event:{delta.event_id or 'initial'}"])
+    return list(dict.fromkeys(citations))

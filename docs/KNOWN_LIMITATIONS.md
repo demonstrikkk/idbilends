@@ -16,7 +16,8 @@ LendSignal 360 is a demo-grade MSME credit intelligence workbench.
 - Market overlays are deterministic simulated context, not live external market data.
 - Rate limiting is documented but not implemented.
 - Audit events are demo in-memory events until persistence is added.
-- Document upload, OCR, parsing, and file retention workflows are roadmap items.
+- Local demo evidence records, file viewing, upload, and status updates are implemented.
+- OCR, production document parsing, and durable file retention workflows are roadmap items.
 - Human override is represented as a governance concept, not a persisted workflow yet.
 
 Demo implication: if a judge asks whether the system is production-ready, the correct answer is that the decision-support workflow is demo-ready, while regulated production deployment requires the controls listed in the roadmap.

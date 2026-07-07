@@ -32,6 +32,30 @@ export const evidenceStatusItemSchema = z.object({
   disabled_reason: z.string().nullable()
 });
 
+export const evidenceRecordSchema = z.object({
+  id: z.string(),
+  msme_id: z.string(),
+  source_type: z.string(),
+  document_name: z.string(),
+  status: z.string(),
+  content_type: z.string(),
+  file_name: z.string(),
+  file_size: z.number(),
+  storage_path: z.string().nullable().optional(),
+  preview_text: z.string(),
+  extracted_signals: z.array(z.object({
+    field_name: z.string(),
+    value: z.string(),
+    source_mapping: z.string(),
+    confidence: z.number()
+  })),
+  related_score_components: z.array(z.string()),
+  source_mapping: z.array(z.string()),
+  uploaded_by: z.string(),
+  created_at: z.string(),
+  updated_at: z.string()
+});
+
 export const recommendedHumanActionSchema = z.object({
   label: z.string(),
   detail: z.string(),
@@ -43,6 +67,7 @@ export const creditFileSchema = z.object({
   score: scoreOutputSchema,
   prospect: prospectOutputSchema,
   evidence_status: z.array(evidenceStatusItemSchema),
+  evidence_records: z.array(evidenceRecordSchema),
   missing_evidence: z.array(z.string()),
   transaction_summary: transactionSummarySchema,
   risk_warnings: z.array(earlyWarningTriggerSchema),
@@ -97,6 +122,7 @@ export const copilotChatResponseSchema = z.object({
 
 export type CreditFile = z.infer<typeof creditFileSchema>;
 export type EvidenceStatusItem = z.infer<typeof evidenceStatusItemSchema>;
+export type EvidenceRecord = z.infer<typeof evidenceRecordSchema>;
 export type EvidenceMapRow = z.infer<typeof evidenceMapRowSchema>;
 export type EvidenceMapResponse = z.infer<typeof evidenceMapResponseSchema>;
 export type CaseInboxResponse = z.infer<typeof caseInboxResponseSchema>;

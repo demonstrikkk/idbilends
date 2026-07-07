@@ -2,6 +2,7 @@ from fastapi import APIRouter, Query
 
 from app.schemas.portfolio import (
     AlertsResponse,
+    CommandCenterCasesResponse,
     ModelMonitorSnapshotResponse,
     PortfolioCasesResponse,
     PortfolioInsightsResponse,
@@ -9,6 +10,7 @@ from app.schemas.portfolio import (
     WatchlistResponse,
 )
 from app.services.portfolio_service import (
+    get_command_center_cases,
     get_alerts,
     get_model_monitor_snapshot,
     get_portfolio_cases,
@@ -22,6 +24,7 @@ watchlist_router = APIRouter(prefix="/watchlist", tags=["watchlist"])
 alerts_router = APIRouter(prefix="/alerts", tags=["alerts"])
 insights_router = APIRouter(prefix="/insights", tags=["insights"])
 model_monitor_router = APIRouter(prefix="/model-monitor", tags=["model-monitor"])
+command_center_router = APIRouter(prefix="/command-center", tags=["command-center"])
 
 
 @portfolio_router.get("/cases", response_model=PortfolioCasesResponse)
@@ -38,6 +41,39 @@ def portfolio_cases(
     scenario: str | None = None,
 ) -> PortfolioCasesResponse:
     return get_portfolio_cases(limit=limit, offset=offset, sort=sort, risk_tier=risk_tier, segment=segment, query=query, city=city, zone=zone, branch=branch, scenario=scenario)
+
+
+@command_center_router.get("/cases", response_model=CommandCenterCasesResponse)
+def command_center_cases(
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    sort: str = "action_priority_desc",
+    risk_tier: str | None = None,
+    segment: str | None = None,
+    query: str | None = None,
+    city: str | None = None,
+    zone: str | None = None,
+    branch: str | None = None,
+    scenario: str | None = None,
+    confidence_band: str | None = None,
+    score_movement: str | None = None,
+    saved_view: str | None = None,
+) -> CommandCenterCasesResponse:
+    return get_command_center_cases(
+        limit=limit,
+        offset=offset,
+        sort=sort,
+        risk_tier=risk_tier,
+        segment=segment,
+        query=query,
+        city=city,
+        zone=zone,
+        branch=branch,
+        scenario=scenario,
+        confidence_band=confidence_band,
+        score_movement=score_movement,
+        saved_view=saved_view,
+    )
 
 
 @portfolio_router.get("/summary", response_model=PortfolioSummaryResponse)

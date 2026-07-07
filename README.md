@@ -28,13 +28,13 @@ Future production layer
 
 ## Demo Flow
 
-1. Open `/case-inbox` to identify files needing action.
-2. Open `msme_005` Pragati Design Services from a Missing Evidence lane.
-3. Use the Credit File at `/msmes/{id}` to inspect readiness, blocker, score, confidence, and recommended human action.
-4. Use `/data-room` to review organized evidence records and missing evidence.
-5. Use `/evidence-map` to trace source data to score signals and human actions.
-6. Ask Credit Copilot: "Why is this case blocked?"
-7. Show audit trail and close with the decision-support boundary.
+1. Open `/command-center` to search and filter the 1000-case synthetic portfolio.
+2. Select one case and use the right-side preview to inspect score, delta, blocker, latest event, and recommended human action.
+3. Open the Credit File at `/msmes/{id}` to inspect readiness, score movement, evidence, action queue, Copilot, and audit trail.
+4. Open the evidence drawer or `/data-room` to view real demo evidence content, extracted metadata fields, and source mapping.
+5. Ask Credit Copilot: "Why did this score change?" or "Which evidence blocks this case?"
+6. Start monitoring once, inject one event, and show the case score/delta update.
+7. Show cited evidence, score history, monitoring event, and audit trail; close with the decision-support boundary.
 
 See [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) for the 4-minute script.
 
@@ -151,6 +151,7 @@ GET /copilot/provider/status
 - `GET /msmes/{msme_id}`
 - `POST /scores/{msme_id}/generate`
 - `GET /prospects/{msme_id}/signals`
+- `GET /command-center/cases`
 - `GET /portfolio/cases`
 - `GET /portfolio/cases?limit=&offset=&sort=&risk_tier=&segment=&query=`
 - `GET /portfolio/summary`
@@ -169,6 +170,11 @@ GET /copilot/provider/status
 - `GET /case-inbox`
 - `GET /credit-file/{msme_id}`
 - `GET /credit-file/{msme_id}/evidence-map`
+- `GET /credit-file/{msme_id}/evidence`
+- `POST /credit-file/{msme_id}/evidence/upload`
+- `GET /credit-file/{msme_id}/evidence/{evidence_id}`
+- `GET /credit-file/{msme_id}/evidence/{evidence_id}/file`
+- `PATCH /credit-file/{msme_id}/evidence/{evidence_id}/status`
 - `POST /copilot/{msme_id}/brief`
 - `GET /copilot/{msme_id}/brief/stream`
 - `POST /copilot/{msme_id}/chat`
@@ -176,6 +182,7 @@ GET /copilot/provider/status
 
 ## Frontend Routes
 
+- `/command-center`
 - `/case-inbox`
 - `/msmes`
 - `/msmes/{id}`
@@ -217,6 +224,7 @@ npm run build
 - No production auth/RBAC yet.
 - No live AA, GST, Udyam, GeM, ULI, bureau, or core-banking integrations.
 - No final lending approval or final rejection.
+- Evidence upload and local demo evidence viewing are available; OCR and durable file retention remain roadmap items.
 - Market overlays are separate from the deterministic policy score.
 - Rate limiting and durable audit retention are future production work.
 

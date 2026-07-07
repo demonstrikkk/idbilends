@@ -37,6 +37,10 @@ class MonitoringStatusResponse(BaseModel):
     running: bool
     event_count: int
     last_event_at: datetime | None = None
+    session_id: str | None = None
+    is_running: bool
+    last_started_at: datetime | None = None
+    active_connections: int = 0
 
 
 class MonitoringEventsResponse(BaseModel):

@@ -1,11 +1,14 @@
 from collections import Counter, defaultdict
 
 from app.db.repository import store
-from app.schemas.common import Pagination, RiskTier
+from app.schemas.common import Pagination, RiskTier, utc_now
 from app.schemas.msme import MSMEListItem
 from app.schemas.portfolio import (
     AlertItem,
     AlertsResponse,
+    CommandCenterCase,
+    CommandCenterCasesResponse,
+    CommandCenterPageSummary,
     ModelMonitorSnapshotResponse,
     PortfolioCase,
     PortfolioCasesResponse,
@@ -39,6 +42,67 @@ def get_portfolio_cases(
     return PortfolioCasesResponse(
         items=cases[offset : offset + limit],
         pagination=Pagination(total=total, limit=limit, offset=offset, has_more=offset + limit < total),
+    )
+
+
+def get_command_center_cases(
+    limit: int = 50,
+    offset: int = 0,
+    sort: str = "action_priority_desc",
+    risk_tier: str | None = None,
+    segment: str | None = None,
+    query: str | None = None,
+    city: str | None = None,
+    zone: str | None = None,
+    branch: str | None = None,
+    scenario: str | None = None,
+    confidence_band: str | None = None,
+    score_movement: str | None = None,
+    saved_view: str | None = None,
+) -> CommandCenterCasesResponse:
+    ensure_seeded()
+    cases = [_case_for(profile.id) for profile in store.list_profiles()]
+    all_rows = [_command_center_case(case) for case in cases]
+    filtered_cases = _filter_cases(cases, risk_tier, segment, query, city, zone, branch, scenario)
+    rows = [_command_center_case(case) for case in filtered_cases]
+    rows = _filter_command_rows(rows, confidence_band, score_movement, saved_view)
+    rows = _sort_command_rows(rows, sort)
+    total = len(rows)
+    applied_filters = {
+        key: value
+        for key, value in {
+            "risk_tier": risk_tier,
+            "segment": segment,
+            "query": query,
+            "city": city,
+            "zone": zone,
+            "branch": branch,
+            "scenario": scenario,
+            "confidence_band": confidence_band,
+            "score_movement": score_movement,
+            "saved_view": saved_view,
+        }.items()
+        if value
+    }
+    page_items = rows[offset : offset + limit]
+    facets = _command_facets(all_rows)
+    return CommandCenterCasesResponse(
+        items=page_items,
+        total=total,
+        limit=limit,
+        offset=offset,
+        sort=sort,
+        applied_filters=applied_filters,
+        available_facets=facets,
+        facets=facets,
+        counts_by_saved_view=_saved_view_counts(all_rows),
+        page_summary=CommandCenterPageSummary(
+            returned=len(page_items),
+            needing_action=sum(1 for row in rows if row.case_stage != "ready_for_review"),
+            score_dropped=sum(1 for row in rows if row.score_delta < 0),
+            missing_evidence=sum(1 for row in rows if row.missing_evidence_count > 0),
+            high_potential_low_confidence=sum(1 for row in rows if row.prospect_priority in {"very_high", "high"} and row.data_confidence < 75),
+        ),
     )
 
 
@@ -174,6 +238,74 @@ def _case_for(msme_id: str) -> PortfolioCase:
     return PortfolioCase(item=item, score=score, prospect=prospect)
 
 
+def _command_center_case(case: PortfolioCase) -> CommandCenterCase:
+    history = store.latest_score_history(case.item.id)
+    events = [event for event in store.list_monitoring_events() if getattr(event, "msme_id", None) == case.item.id]
+    events.sort(key=lambda event: getattr(event, "created_at", utc_now()), reverse=True)
+    latest_event = events[0] if events else None
+    top_blocker = _top_blocker(case)
+    missing_count = len(case.score.missing_data_warnings)
+    active_alert_count = len(case.score.early_warning_triggers) + missing_count
+    return CommandCenterCase(
+        msme_id=case.item.id,
+        business_name=case.item.business_name,
+        segment=case.item.segment.value,
+        city=case.item.city,
+        state=case.item.state,
+        branch=case.item.branch,
+        zone=case.item.zone,
+        relationship_manager=case.item.relationship_manager,
+        requested_credit_amount=case.item.requested_credit_amount,
+        policy_score=case.score.score,
+        market_adjusted_score=case.score.score,
+        score_delta=history.delta if history else 0,
+        risk_tier=case.score.risk_tier.value,
+        data_confidence=case.score.data_confidence,
+        top_blocker=top_blocker,
+        missing_evidence_count=missing_count,
+        active_alert_count=active_alert_count,
+        latest_event=getattr(latest_event, "label", None),
+        latest_event_at=getattr(getattr(latest_event, "created_at", None), "isoformat", lambda: None)(),
+        recommended_human_action=_specific_action(case),
+        prospect_priority=case.prospect.priority.value,
+        suggested_credit_min=case.score.suggested_credit_min,
+        suggested_credit_max=case.score.suggested_credit_max,
+        last_updated=case.item.last_updated.isoformat(),
+        case_stage=_case_stage(case),
+        monitoring_status=case.item.monitoring_status,
+    )
+
+
+def _top_blocker(case: PortfolioCase) -> str:
+    if case.score.missing_data_warnings:
+        return case.score.missing_data_warnings[0]
+    if case.score.early_warning_triggers:
+        trigger = case.score.early_warning_triggers[0]
+        return f"{trigger.label}: {trigger.condition}"
+    if case.score.data_confidence < 75:
+        return f"Data confidence is {case.score.data_confidence}; verify bank, GST-like, and bureau-like evidence before human review."
+    return "No blocking evidence gap in the latest deterministic score output."
+
+
+def _specific_action(case: PortfolioCase) -> str:
+    blocker = _top_blocker(case)
+    if case.score.missing_data_warnings:
+        return f"Request evidence for: {blocker}. This blocks confident cashflow or obligation verification for the officer review."
+    if case.score.early_warning_triggers:
+        return f"Investigate {case.score.early_warning_triggers[0].label} and cite the changed source fields before routing to human review."
+    return case.score.recommended_human_action
+
+
+def _case_stage(case: PortfolioCase) -> str:
+    if case.score.missing_data_warnings:
+        return "evidence_blocked"
+    if case.score.early_warning_triggers or case.score.risk_tier.value in {"elevated", "high"}:
+        return "risk_attention"
+    if case.prospect.priority.value in {"very_high", "high"} and case.score.data_confidence < 75:
+        return "rm_action_needed"
+    return "ready_for_review"
+
+
 def _is_review_required(case: PortfolioCase) -> bool:
     return case.score.recommendation.value in {"review_required", "insufficient_data"} or case.score.risk_tier.value in {"elevated", "high"}
 
@@ -238,6 +370,92 @@ def _sort_cases(cases: list[PortfolioCase], sort: str) -> list[PortfolioCase]:
         "business_name_asc": lambda case: case.item.business_name.lower(),
     }
     return sorted(cases, key=sorters.get(sort, sorters["prospect_score_desc"]))
+
+
+def _filter_command_rows(
+    rows: list[CommandCenterCase],
+    confidence_band: str | None,
+    score_movement: str | None,
+    saved_view: str | None,
+) -> list[CommandCenterCase]:
+    filtered = rows
+    if confidence_band == "low":
+        filtered = [row for row in filtered if row.data_confidence < 70]
+    elif confidence_band == "medium":
+        filtered = [row for row in filtered if 70 <= row.data_confidence < 85]
+    elif confidence_band == "high":
+        filtered = [row for row in filtered if row.data_confidence >= 85]
+    if score_movement == "dropped":
+        filtered = [row for row in filtered if row.score_delta < 0]
+    elif score_movement == "improved":
+        filtered = [row for row in filtered if row.score_delta > 0]
+    elif score_movement == "unchanged":
+        filtered = [row for row in filtered if row.score_delta == 0]
+    if saved_view:
+        filtered = [row for row in filtered if _row_matches_saved_view(row, saved_view)]
+    return filtered
+
+
+def _sort_command_rows(rows: list[CommandCenterCase], sort: str) -> list[CommandCenterCase]:
+    sorters = {
+        "action_priority_desc": lambda row: (0 if row.case_stage != "ready_for_review" else 1, -row.active_alert_count, row.policy_score),
+        "score_asc": lambda row: row.policy_score,
+        "score_desc": lambda row: -row.policy_score,
+        "delta_asc": lambda row: row.score_delta,
+        "delta_desc": lambda row: -row.score_delta,
+        "confidence_asc": lambda row: row.data_confidence,
+        "requested_desc": lambda row: -row.requested_credit_amount,
+        "business_name_asc": lambda row: row.business_name.lower(),
+        "updated_desc": lambda row: row.last_updated,
+    }
+    return sorted(rows, key=sorters.get(sort, sorters["action_priority_desc"]))
+
+
+def _command_facets(rows: list[CommandCenterCase]) -> dict[str, list[str]]:
+    return {
+        "risk_tier": sorted({row.risk_tier for row in rows}),
+        "segment": sorted({row.segment for row in rows}),
+        "zone": sorted({row.zone for row in rows if row.zone}),
+        "branch": sorted({row.branch for row in rows if row.branch}),
+        "case_stage": sorted({row.case_stage for row in rows}),
+        "monitoring_status": sorted({row.monitoring_status for row in rows}),
+        "confidence_band": ["low", "medium", "high"],
+        "score_movement": ["dropped", "improved", "unchanged"],
+    }
+
+
+def _saved_view_counts(rows: list[CommandCenterCase]) -> dict[str, int]:
+    views = [
+        "all_active_files",
+        "score_dropped_today",
+        "missing_evidence",
+        "high_potential_low_confidence",
+        "risk_attention",
+        "sector_overlay_affected",
+        "rm_action_needed",
+        "recently_updated",
+    ]
+    return {view: sum(1 for row in rows if _row_matches_saved_view(row, view)) for view in views}
+
+
+def _row_matches_saved_view(row: CommandCenterCase, view: str) -> bool:
+    if view == "all_active_files":
+        return True
+    if view == "score_dropped_today":
+        return row.score_delta < 0
+    if view == "missing_evidence":
+        return row.missing_evidence_count > 0
+    if view == "high_potential_low_confidence":
+        return row.prospect_priority in {"very_high", "high"} and row.data_confidence < 75
+    if view == "risk_attention":
+        return row.case_stage == "risk_attention" or row.risk_tier in {"elevated", "high"}
+    if view == "sector_overlay_affected":
+        return row.monitoring_status == "sector_stress"
+    if view == "rm_action_needed":
+        return row.case_stage in {"evidence_blocked", "risk_attention", "rm_action_needed"}
+    if view == "recently_updated":
+        return True
+    return True
 
 
 def _avg(values: list[int]) -> int:

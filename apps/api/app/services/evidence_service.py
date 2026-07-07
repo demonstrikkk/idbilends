@@ -1,0 +1,154 @@
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi import HTTPException, UploadFile
+from fastapi.responses import FileResponse, PlainTextResponse
+
+from app.db.repository import store
+from app.schemas.common import DocumentAvailability, utc_now
+from app.schemas.credit_file import EvidenceExtractedSignal, EvidenceRecord, EvidenceStatusUpdate, EvidenceUploadResponse
+from app.services.audit_service import create_audit_event
+from app.services.synthetic_data_service import ensure_seeded
+
+STORAGE_DIR = Path(__file__).resolve().parents[2] / "demo_storage" / "evidence"
+
+
+def list_evidence_records(msme_id: str) -> list[EvidenceRecord]:
+    ensure_seeded()
+    if store.get_profile(msme_id) is None:
+        raise HTTPException(status_code=404, detail={"code": "MSME_NOT_FOUND", "message": "MSME profile was not found."})
+    _seed_evidence_for_case(msme_id)
+    return [EvidenceRecord.model_validate(item) for item in store.list_evidence_records(msme_id)]
+
+
+def get_evidence_record(msme_id: str, evidence_id: str) -> EvidenceRecord:
+    for record in list_evidence_records(msme_id):
+        if record.id == evidence_id:
+            return record
+    raise HTTPException(status_code=404, detail={"code": "EVIDENCE_NOT_FOUND", "message": "Evidence record was not found for this credit file."})
+
+
+async def upload_evidence(msme_id: str, file: UploadFile, source_type: str = "uploaded_document", status: str = "partial", request_id: str | None = None) -> EvidenceUploadResponse:
+    ensure_seeded()
+    if store.get_profile(msme_id) is None:
+        raise HTTPException(status_code=404, detail={"code": "MSME_NOT_FOUND", "message": "MSME profile was not found."})
+    content = await file.read()
+    if len(content) > 2_500_000:
+        raise HTTPException(status_code=413, detail={"code": "EVIDENCE_FILE_TOO_LARGE", "message": "Demo evidence upload limit is 2.5 MB."})
+    STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+    safe_name = Path(file.filename or "uploaded-evidence.txt").name.replace(" ", "_")
+    evidence_id = f"ev_{uuid4().hex[:10]}"
+    storage_path = STORAGE_DIR / f"{msme_id}_{evidence_id}_{safe_name}"
+    storage_path.write_bytes(content)
+    preview_text = _preview_from_bytes(content, file.content_type or "application/octet-stream", safe_name)
+    record = EvidenceRecord(
+        id=evidence_id,
+        msme_id=msme_id,
+        source_type=source_type,
+        document_name=safe_name,
+        status=status if status in DocumentAvailability._value2member_map_ else "partial",
+        content_type=file.content_type or "application/octet-stream",
+        file_name=safe_name,
+        file_size=len(content),
+        storage_path=str(storage_path),
+        preview_text=preview_text,
+        extracted_signals=_demo_signals(source_type, status, safe_name),
+        related_score_components=_components_for_source(source_type),
+        source_mapping=[f"uploaded_file:{safe_name}", f"credit_file:{msme_id}", f"evidence:{evidence_id}"],
+        uploaded_by="demo_credit_officer",
+        created_at=utc_now(),
+        updated_at=utc_now(),
+    )
+    store.upsert_evidence_record(msme_id, record)
+    audit = create_audit_event("evidence_uploaded", msme_id, {"evidence_id": record.id, "source_type": source_type, "status": record.status, "success": True}, request_id=request_id)
+    return EvidenceUploadResponse(record=record, audit_event_id=audit.id)
+
+
+def update_evidence_status(msme_id: str, evidence_id: str, payload: EvidenceStatusUpdate, request_id: str | None = None) -> EvidenceRecord:
+    record = get_evidence_record(msme_id, evidence_id)
+    updated = record.model_copy(update={"status": payload.status, "updated_at": utc_now()})
+    store.upsert_evidence_record(msme_id, updated)
+    create_audit_event("evidence_status_updated", msme_id, {"evidence_id": evidence_id, "status": payload.status, "success": True}, request_id=request_id)
+    return updated
+
+
+def evidence_file_response(msme_id: str, evidence_id: str):
+    record = get_evidence_record(msme_id, evidence_id)
+    if record.storage_path and Path(record.storage_path).exists():
+        return FileResponse(record.storage_path, media_type=record.content_type, filename=record.file_name)
+    return PlainTextResponse(record.preview_text, media_type="text/plain")
+
+
+def _seed_evidence_for_case(msme_id: str) -> None:
+    if store.list_evidence_records(msme_id):
+        return
+    profile = store.get_profile(msme_id)
+    if profile is None:
+        return
+    documents = profile.documents
+    for source_type in ["bank_statement", "gst_returns", "udyam", "itr"]:
+        status = getattr(documents, source_type if source_type != "udyam" else "udyam").value
+        if source_type == "udyam" and status == "not_applicable":
+            status = "available"
+        record = _seed_record(msme_id, source_type, status, profile.business_name)
+        store.upsert_evidence_record(msme_id, record)
+
+
+def _seed_record(msme_id: str, source_type: str, status: str, business_name: str) -> EvidenceRecord:
+    evidence_id = f"ev_{msme_id}_{source_type}"
+    name = {
+        "bank_statement": "Bank statement summary",
+        "gst_returns": "GST-like turnover summary",
+        "udyam": "Udyam certificate mock record",
+        "itr": "ITR evidence request note",
+    }.get(source_type, "Evidence document")
+    preview = (
+        f"{name}\n"
+        f"Borrower: {business_name}\n"
+        f"Evidence ID: {evidence_id}\n"
+        f"Status: {status}\n\n"
+        "Demo document content generated from synthetic profile metadata. No OCR, external registry lookup, or real customer data is used.\n"
+        f"Source mapping: credit_file:{msme_id} -> evidence:{evidence_id} -> score_component:{', '.join(_components_for_source(source_type))}\n"
+    )
+    return EvidenceRecord(
+        id=evidence_id,
+        msme_id=msme_id,
+        source_type=source_type,
+        document_name=name,
+        status=status,
+        content_type="text/plain",
+        file_name=f"{evidence_id}.txt",
+        file_size=len(preview.encode("utf-8")),
+        storage_path=None,
+        preview_text=preview,
+        extracted_signals=_demo_signals(source_type, status, f"{evidence_id}.txt"),
+        related_score_components=_components_for_source(source_type),
+        source_mapping=[f"credit_file:{msme_id}", f"evidence:{evidence_id}", f"source_type:{source_type}"],
+        uploaded_by="system_seed",
+        created_at=utc_now(),
+        updated_at=utc_now(),
+    )
+
+
+def _components_for_source(source_type: str) -> list[str]:
+    return {
+        "bank_statement": ["cashflow_strength", "data_quality"],
+        "gst_returns": ["compliance_discipline", "revenue_quality"],
+        "udyam": ["identity_verification", "compliance_discipline"],
+        "bureau_report": ["repayment_stress"],
+        "itr": ["income_verification", "data_quality"],
+        "gem_profile": ["business_concentration", "prospect_readiness"],
+    }.get(source_type, ["data_quality"])
+
+
+def _demo_signals(source_type: str, status: str, file_name: str) -> list[EvidenceExtractedSignal]:
+    return [
+        EvidenceExtractedSignal(field_name=f"{source_type}_status", value=status, source_mapping=f"metadata.file_name={file_name}", confidence=92),
+        EvidenceExtractedSignal(field_name="parser_mode", value="demo_metadata_only", source_mapping="no OCR/parser invoked", confidence=100),
+    ]
+
+
+def _preview_from_bytes(content: bytes, content_type: str, file_name: str) -> str:
+    if content_type.startswith("text/") or file_name.lower().endswith((".txt", ".csv", ".json", ".html")):
+        return content.decode("utf-8", errors="replace")[:4000]
+    return f"Uploaded {file_name} ({content_type}). Binary preview is not parsed in this demo; use the file viewer endpoint to open the source file."

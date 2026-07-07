@@ -6,10 +6,11 @@ Phase: 3.7 Product Realignment + Banker Workbench Rebuild
 
 | Page | Job | Backend source | No-fake handling |
 |---|---|---|---|
+| `/command-center` | Primary officer command center for 1000-case triage, instant preview, evidence drawer, Copilot drawer, and monitoring injection | `GET /command-center/cases`, `GET /credit-file/{id}/evidence`, `POST /monitoring/events/manual`, `POST /copilot/{id}/chat` | Rows, blockers, deltas, facets, evidence IDs, and actions are backend-derived. No frontend-only case summaries. |
 | `/case-inbox` | Group cases needing officer action | `GET /case-inbox` | Lanes contain only backend-derived cases. Empty lanes show empty state. |
 | `/msmes` | Credit file register | `GET /portfolio/cases` | Rows use backend profile, score, and prospect outputs. |
 | `/msmes/{id}` | Flagship Credit File workbench | `GET /credit-file/{id}` | Score, posture, evidence, transaction summary, risk, and audit come from backend bundle. |
-| `/data-room` | Organized record status | `GET /portfolio/cases`, `GET /credit-file/{id}` | Unsupported record actions are disabled with backend-phase explanation. |
+| `/data-room` | Organized evidence records and document viewer | `GET /portfolio/cases`, `GET /credit-file/{id}`, evidence endpoints | Document previews, extracted metadata, source mapping, and status updates are backend-backed. |
 | `/evidence-map` | Source-to-underwriting evidence trace | `GET /credit-file/{id}/evidence-map` | Missing source data is labelled unavailable, not fabricated. |
 | `/copilot` | Case-aware Copilot chat and brief generation | `GET /portfolio/cases`, `POST /copilot/{id}/chat`, existing brief/stream endpoints | Chat answers are backend-generated from sanitized context. |
 | `/portfolio` | Portfolio-level signals | `GET /portfolio/cases`, `GET /portfolio/summary`, related aggregation endpoints | Current snapshot only; no fake history. |

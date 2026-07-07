@@ -6,7 +6,11 @@ No. It is decision-support software. It organizes evidence, deterministic score 
 
 ## Why does Copilot not hallucinate?
 
-Copilot receives a sanitized backend context pack, must cite internal inputs, shows assumptions and confidence, and cannot alter score outputs. If a fact is missing, it should surface the evidence gap rather than fill it in.
+Copilot receives a sanitized backend context pack, must cite internal inputs, shows assumptions and confidence, and cannot alter score outputs. If a fact is missing, it surfaces the evidence gap rather than filling it in. Explicit Groq mode fails visibly when unavailable instead of silently returning mock output.
+
+## What does Command Center prove?
+
+`/command-center` shows the officer operating surface: 1000 synthetic MSME files, backend search/filter/sort/pagination, saved views, instant case preview, evidence drawer, Copilot drawer, and monitoring event injection. It is designed to show that only a small subset of the portfolio needs action now.
 
 ## What data is real vs synthetic?
 
@@ -26,9 +30,9 @@ Yes. The provider is behind a backend adapter. Groq is optional, mock mode works
 
 ## What is production-ready vs future work?
 
-Demo-ready: local web/API app, 1000-profile synthetic scale simulation, deterministic scoring, score history, monitoring simulator, market overlay simulation, Prospect Assist, Credit File, Data Room, Evidence Map, Credit Copilot provider modes, audit events, tests, Docker files, and CI.
+Demo-ready: local web/API app, Command Center, 1000-profile synthetic scale simulation, deterministic scoring, score history, monitoring simulator, market overlay simulation, Prospect Assist, Credit File, Data Room, viewable demo evidence records, evidence upload/status endpoints, Evidence Map, Credit Copilot provider modes, audit events, tests, Docker files, and CI.
 
-Future production work: authentication, RBAC, PostgreSQL persistence, durable audit retention, rate limiting, real integrations, observability, document upload/parsing, security hardening, and deployment controls.
+Future production work: authentication, RBAC, PostgreSQL persistence, durable audit and file retention, rate limiting, real integrations, observability, OCR/document parsing, security hardening, and deployment controls.
 
 ## Does the market overlay change the credit policy score?
 

@@ -1,10 +1,10 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, BrainCircuit, FileText, Loader2, Radio, RefreshCw, Send } from "lucide-react";
+import { AlertTriangle, BrainCircuit, ExternalLink, FileText, Loader2, Radio, RefreshCw, Send } from "lucide-react";
 import { useRef, useState } from "react";
 import { ApiError } from "@/lib/api/client";
-import { sendCopilotChat } from "@/lib/api/credit-file";
+import { evidenceFileUrl, sendCopilotChat } from "@/lib/api/credit-file";
 import { generateCopilotBrief, getCopilotProviderStatus, copilotStreamUrl } from "@/lib/api/copilot";
 import { copilotBriefSchema, type CopilotBrief, type TraceStep } from "@/lib/schemas/copilot";
 import type { CopilotChatResponse } from "@/lib/schemas/credit-file";
@@ -33,6 +33,7 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
   const [streamText, setStreamText] = useState("");
   const [streamError, setStreamError] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [providerMode, setProviderMode] = useState<"configured" | "mock" | "groq" | "disabled">("configured");
   const eventSourceRef = useRef<EventSource | null>(null);
   const providerStatusQuery = useQuery({
     queryKey: ["copilot", "provider-status"],
@@ -56,7 +57,7 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
   });
 
   const chatMutation = useMutation({
-    mutationFn: (message: string) => sendCopilotChat(msmeId, message),
+    mutationFn: (message: string) => sendCopilotChat(msmeId, message, providerMode === "configured" ? undefined : providerMode),
     onSuccess: (payload, message) => {
       setMessages((current) => [...current, { role: "officer", text: message }, { role: "copilot", text: payload.answer, response: payload }]);
       setChatInput("");
@@ -147,6 +148,21 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
         ) : null}
       </div>
 
+      <div className="flex items-center gap-2 border-b border-line bg-white px-5 py-2 text-xs">
+        <span className="font-semibold text-muted">Mode</span>
+        <select
+          value={providerMode}
+          onChange={(event) => setProviderMode(event.target.value as "configured" | "mock" | "groq" | "disabled")}
+          className="h-8 rounded border border-line bg-surface px-2 text-xs font-medium text-ink outline-none focus:border-navy"
+        >
+          <option value="configured">Backend configured</option>
+          <option value="mock">Mock</option>
+          <option value="groq">Groq</option>
+          <option value="disabled">Disabled</option>
+        </select>
+        <span className="text-muted">Explicit Groq mode returns an error if unavailable.</span>
+      </div>
+
       {/* Decision-support banner */}
       <div className="flex items-center gap-2 border-b border-line bg-navy/5 px-5 py-2 text-xs text-ink/70">
         <AlertTriangle className="h-3.5 w-3.5 text-amber shrink-0" />
@@ -197,9 +213,7 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
                   {message.response ? (
                     <div className="mt-3 space-y-2 border-t border-line pt-2 text-xs text-muted">
                       <div className="flex flex-wrap gap-1">
-                        {message.response.cited_internal_inputs.map((input) => (
-                          <span key={input} className="rounded border border-line bg-subtle px-1.5 py-0.5 font-mono text-[10px]">{input}</span>
-                        ))}
+                        {message.response.cited_internal_inputs.map((input) => <SourceChip key={input} input={input} msmeId={msmeId} />)}
                       </div>
                       <TraceAccordion trace={message.response.trace} />
                     </div>
@@ -282,6 +296,24 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
       </div>
     </div>
   );
+}
+
+function SourceChip({ input, msmeId }: { input: string; msmeId: string }) {
+  const evidenceId = input.startsWith("evidence:") ? input.slice("evidence:".length) : null;
+  if (evidenceId) {
+    return (
+      <a
+        href={evidenceFileUrl(msmeId, evidenceId)}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-1 rounded border border-line bg-subtle px-1.5 py-0.5 font-mono text-[10px] text-navy hover:bg-white"
+      >
+        {input}
+        <ExternalLink className="h-3 w-3" />
+      </a>
+    );
+  }
+  return <span className="rounded border border-line bg-subtle px-1.5 py-0.5 font-mono text-[10px]">{input}</span>;
 }
 
 function BriefView({ brief }: { brief: CopilotBrief }) {

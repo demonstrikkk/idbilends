@@ -37,6 +37,7 @@ def create_app() -> FastAPI:
         portfolio.alerts_router,
         portfolio.insights_router,
         portfolio.model_monitor_router,
+        portfolio.command_center_router,
     ]:
         app.include_router(router)
     return app

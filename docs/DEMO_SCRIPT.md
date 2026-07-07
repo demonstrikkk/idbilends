@@ -6,34 +6,35 @@
 - Frontend: `cd apps/web && npm run dev`
 - Seed data if needed: open `POST /demo/seed` from API docs or use the app empty-state seed action.
 - Primary case: `msme_005` Pragati Design Services for a missing-ITR/bureau evidence gap.
+- Primary screen: `/command-center` for 1000-case search, filters, instant preview, evidence drawer, Copilot, and monitoring injection.
 - Optional contrast cases: `msme_001` Aarav Precision Tools, `msme_006` Kaveri Trading Co, `msme_008` Metro Fabrication Works, `msme_009` Nova Wholesale Links.
 
 ## Exact Click Path
 
-1. `/case-inbox`
-2. Open Pragati Design Services or another Missing Evidence case.
-3. In the Credit File, show Business Identity, Evidence Records, Credit Posture, Credit Copilot, and Audit Trail.
-4. `/data-room`
-5. `/evidence-map`
-6. `/copilot`
-7. `/governance` only if time remains.
-8. Phase 6 option: `/monitoring` to show a live synthetic event, score delta, and officer action queue.
+1. `/command-center`
+2. Search/filter to Missing Evidence and select Pragati Design Services or another blocked case.
+3. Use the right-side preview to show score, delta, blocker, latest event, and recommended human action.
+4. Open Evidence Drawer and show actual document content, extracted fields, and source mapping.
+5. Open Credit File and show Evidence Records, Credit Posture, Credit Copilot, and Audit Trail.
+6. Ask Copilot: `Why did this score change?` and `Which evidence blocks this case?`
+7. Start monitoring once, inject one event, and show one clean score update.
+8. `/governance` only if time remains.
 
 ## 0:00 - Problem
 
 MSME credit appraisal data is scattered across statements, GST-like filings, bureau-like checks, document gaps, transaction behavior, and RM notes. LendSignal 360 turns those fragments into a banker-facing credit file for human review.
 
-## 0:30 - Case Inbox
+## 0:30 - Command Center
 
-Open `/case-inbox`. Show the underwriting queue grouped by ready review, missing evidence, risk attention, high potential, and low confidence. Select Pragati Design Services to demonstrate a case blocked by missing evidence rather than a final credit outcome.
+Open `/command-center`. Show 1000 synthetic files with saved views, search, backend filters, sorting, and pagination. Select Pragati Design Services to demonstrate a case blocked by missing evidence rather than a final credit outcome.
 
 ## 1:00 - Credit File
 
-Open the selected Credit File. Show score, risk tier, data confidence, current blocker, suggested range, and recommended human action. Say: "The deterministic score engine owns these numbers; Copilot can explain them but cannot change them."
+Use the right preview, then open the selected Credit File. Show score, risk tier, data confidence, current blocker, suggested range, score delta, and recommended human action. Say: "The deterministic score engine owns these numbers; Copilot can explain them but cannot change them."
 
 ## 1:35 - Data Room
 
-Open `/data-room`. Show organized evidence records, status, why each record matters, and disabled actions for unsupported MVP workflows. Emphasize that missing evidence is surfaced honestly instead of being filled in by the UI.
+Open the evidence drawer or `/data-room`. Show organized evidence records, document preview, extracted metadata fields, source mapping, and status controls. Emphasize that missing evidence is surfaced honestly instead of being filled in by the UI.
 
 ## 2:05 - Evidence Map
 
@@ -41,9 +42,9 @@ Open `/evidence-map`. Show Source Data -> Derived Signal -> Score Component -> L
 
 ## 2:40 - Credit Copilot
 
-Open `/copilot`, keep Pragati Design Services selected, and ask: `Why is this case blocked?`
+Open Copilot from the preview or `/copilot`, keep Pragati Design Services selected, and ask: `Why is this case blocked?`
 
-Then ask one optional follow-up: `What evidence should I request next?`
+Then ask: `Which evidence blocks this case?` and, after monitoring, `Why did this score change?`
 
 Point out cited internal inputs, assumptions, provider/model, and agent trace. Say: "Copilot explains the backend credit file. It does not invent missing facts or issue a final credit decision."
 
@@ -61,7 +62,7 @@ Open `/monitoring`, start the simulated session, and inject `bounce_event_record
 
 ## Fallbacks
 
-- If Groq is unavailable, use mock mode. The demo still shows deterministic scoring, evidence mapping, audit events, and validated Copilot output.
+- If Groq is unavailable, show that explicit Groq mode returns a clear provider error and then switch to mock mode. The demo still shows deterministic scoring, evidence mapping, audit events, and validated Copilot output.
 - If Docker is unavailable, run the backend and frontend with the local commands above.
 - If Copilot streaming fails, use the non-streaming "Generate decision-support brief" or chat prompt.
-- If the browser starts on `/`, click "Open Case Inbox" and continue the same path.
+- If the browser starts on `/`, click "Open Command Center" and continue the same path.

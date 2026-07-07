@@ -68,6 +68,7 @@ Streaming limitation: Phase 3.6 keeps LangGraph as the fixed orchestrator and em
 ## Aggregation Endpoints
 
 - `GET /portfolio/cases`
+- `GET /command-center/cases`
 - `GET /portfolio/cases?limit=&offset=&sort=&risk_tier=&segment=&query=`
 - `GET /portfolio/summary`
 - `GET /watchlist`
@@ -77,6 +78,11 @@ Streaming limitation: Phase 3.6 keeps LangGraph as the fixed orchestrator and em
 - `GET /case-inbox`
 - `GET /credit-file/{msme_id}`
 - `GET /credit-file/{msme_id}/evidence-map`
+- `GET /credit-file/{msme_id}/evidence`
+- `POST /credit-file/{msme_id}/evidence/upload`
+- `GET /credit-file/{msme_id}/evidence/{evidence_id}`
+- `GET /credit-file/{msme_id}/evidence/{evidence_id}/file`
+- `PATCH /credit-file/{msme_id}/evidence/{evidence_id}/status`
 
 These endpoints are current derived snapshots only. They do not create fake policy databases, model history, report history, or alert persistence.
 

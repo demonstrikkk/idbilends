@@ -14,6 +14,7 @@ class DemoStore:
     audit_events: list[AuditEventSchema] = field(default_factory=list)
     score_history: dict[str, list[ScoreHistoryEntry]] = field(default_factory=dict)
     monitoring_events: list[object] = field(default_factory=list)
+    evidence_records: dict[str, list[object]] = field(default_factory=dict)
 
     def reset(self) -> None:
         self.profiles.clear()
@@ -22,6 +23,7 @@ class DemoStore:
         self.audit_events.clear()
         self.score_history.clear()
         self.monitoring_events.clear()
+        self.evidence_records.clear()
 
     def upsert_profile(self, profile: MSMEDetail) -> None:
         self.profiles[profile.id] = profile
@@ -68,6 +70,18 @@ class DemoStore:
 
     def list_monitoring_events(self) -> list[object]:
         return list(self.monitoring_events)
+
+    def upsert_evidence_record(self, msme_id: str, record: object) -> None:
+        records = self.evidence_records.setdefault(msme_id, [])
+        record_id = getattr(record, "id", None)
+        for index, existing in enumerate(records):
+            if getattr(existing, "id", None) == record_id:
+                records[index] = record
+                return
+        records.append(record)
+
+    def list_evidence_records(self, msme_id: str) -> list[object]:
+        return list(self.evidence_records.get(msme_id, []))
 
     def list_audit_events(self, msme_id: str, event_type: str | None = None) -> list[AuditEventSchema]:
         events = [event for event in self.audit_events if event.msme_id == msme_id]

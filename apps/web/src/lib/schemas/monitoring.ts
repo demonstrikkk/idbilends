@@ -20,7 +20,11 @@ export const monitoringEventTypeSchema = z.enum([
 export const monitoringStatusSchema = z.object({
   running: z.boolean(),
   event_count: z.number(),
-  last_event_at: z.string().nullable()
+  last_event_at: z.string().nullable(),
+  session_id: z.string().nullable().optional(),
+  is_running: z.boolean().optional(),
+  last_started_at: z.string().nullable().optional(),
+  active_connections: z.number().optional()
 });
 
 export const scoreMovementSchema = z.object({

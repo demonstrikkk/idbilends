@@ -66,10 +66,11 @@ class GroqCopilotProvider(BaseCopilotProvider):
                 raw = raw[4:]
         try:
             parsed = json.loads(raw)
-        except json.JSONDecodeError:
-            # Fallback: use mock provider output instead of crashing
-            mock_brief = await MockCopilotProvider().generate_structured_brief(context)
-            return mock_brief.model_copy(update={"provider": self.provider_name, "model": self.settings.groq_model_structured})
+        except json.JSONDecodeError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail={"code": "COPILOT_PROVIDER_UNAVAILABLE", "message": "Groq returned a response that did not match the required grounded JSON schema. No mock fallback was used."},
+            ) from exc
         parsed.update(
             {
                 "id": parsed.get("id") or f"brief_{uuid4().hex[:10]}",

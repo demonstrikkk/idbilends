@@ -42,6 +42,15 @@ def test_market_overlay_keeps_policy_score_separate():
 def test_monitoring_status_and_websocket_connect():
     response = client.get("/monitoring/status")
     assert response.status_code == 200
+    first_start = client.post("/monitoring/start")
+    second_start = client.post("/monitoring/start")
+    assert first_start.status_code == 200
+    assert second_start.status_code == 200
+    assert first_start.json()["session_id"] == second_start.json()["session_id"]
+    assert second_start.json()["is_running"] is True
+    assert "active_connections" in second_start.json()
     with client.websocket_connect("/ws/monitoring") as websocket:
         message = websocket.receive_json()
         assert message["event"] == "connected"
+    stop = client.post("/monitoring/stop")
+    assert stop.status_code == 200

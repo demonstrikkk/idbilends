@@ -23,6 +23,41 @@ class EvidenceStatusItem(BaseModel):
     disabled_reason: str | None = None
 
 
+class EvidenceExtractedSignal(BaseModel):
+    field_name: str
+    value: str
+    source_mapping: str
+    confidence: int
+
+
+class EvidenceRecord(BaseModel):
+    id: str
+    msme_id: str
+    source_type: str
+    document_name: str
+    status: Literal["available", "partial", "missing", "stale", "not_applicable"]
+    content_type: str
+    file_name: str
+    file_size: int
+    storage_path: str | None = None
+    preview_text: str
+    extracted_signals: list[EvidenceExtractedSignal]
+    related_score_components: list[str]
+    source_mapping: list[str]
+    uploaded_by: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class EvidenceUploadResponse(BaseModel):
+    record: EvidenceRecord
+    audit_event_id: str
+
+
+class EvidenceStatusUpdate(BaseModel):
+    status: Literal["available", "partial", "missing", "stale", "not_applicable"]
+
+
 class EvidenceMapRow(BaseModel):
     source_type: str
     source_label: str
@@ -51,6 +86,7 @@ class CreditFileResponse(BaseModel):
     score: ScoreOutputSchema
     prospect: ProspectSignalOutputSchema
     evidence_status: list[EvidenceStatusItem]
+    evidence_records: list[EvidenceRecord] = []
     missing_evidence: list[str]
     transaction_summary: TransactionSummary
     risk_warnings: list[EarlyWarningTrigger]

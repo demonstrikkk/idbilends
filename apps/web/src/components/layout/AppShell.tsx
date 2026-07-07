@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const primaryWorkflow = [
+  { href: "/command-center", label: "Command Center", icon: TableProperties },
   { href: "/case-inbox", label: "Case Inbox", icon: TableProperties },
   { href: "/msmes", label: "Credit File", icon: FolderKanban },
   { 
@@ -168,7 +169,7 @@ function TopCommandBar() {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-surface/95 px-4 backdrop-blur sm:px-6">
       <div className="flex items-center gap-3 lg:hidden">
-        <Link href="/case-inbox" className="font-serif text-lg font-semibold">LendSignal 360</Link>
+        <Link href="/command-center" className="font-serif text-lg font-semibold">LendSignal 360</Link>
       </div>
       <label className="ml-auto hidden h-9 w-full max-w-[380px] items-center gap-2 rounded border border-line bg-white px-3 text-sm text-muted md:flex">
         <Search className="h-4 w-4" />
@@ -192,6 +193,7 @@ function TopCommandBar() {
 }
 
 const routeLabels: Record<string, string> = {
+  "command-center": "Command Center",
   "case-inbox": "Case Inbox",
   msmes: "Credit File",
   "data-room": "Data Room",
@@ -245,7 +247,7 @@ function BreadcrumbHeader({ title, subtitle, actions, segments }: { title: strin
     <div className="mb-5">
       <div className="mb-4 flex min-h-8 items-center justify-between gap-4 border-b border-line pb-3 text-xs">
         <div className="flex items-center gap-2 text-muted">
-          <Link href="/case-inbox" className="hover:text-ink transition-colors">Case Inbox</Link>
+          <Link href="/command-center" className="hover:text-ink transition-colors">Command Center</Link>
           {segments.map((segment) => (
             <span key={segment} className="flex items-center gap-2">
               <span>/</span>

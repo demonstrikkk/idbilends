@@ -11,6 +11,7 @@ from app.schemas.credit_file import (
     RecommendedHumanAction,
 )
 from app.services.audit_service import list_audit_events
+from app.services.evidence_service import list_evidence_records
 from app.services.msme_service import get_msme
 from app.services.portfolio_service import get_portfolio_cases
 from app.services.prospect_service import generate_prospect_signals
@@ -69,6 +70,7 @@ def get_credit_file(msme_id: str) -> CreditFileResponse:
         score=score,
         prospect=prospect,
         evidence_status=evidence,
+        evidence_records=list_evidence_records(msme_id),
         missing_evidence=score.missing_data_warnings,
         transaction_summary=get_transaction_summary(msme_id),
         risk_warnings=score.early_warning_triggers,

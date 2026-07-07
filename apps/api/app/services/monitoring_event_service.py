@@ -47,13 +47,17 @@ manager = MonitoringConnectionManager()
 _running = False
 _task: asyncio.Task | None = None
 _rng = Random(360)
+_session_id: str | None = None
+_last_started_at = None
 
 
 async def start_monitoring() -> MonitoringStatusResponse:
-    global _running, _task
+    global _running, _task, _session_id, _last_started_at
     ensure_seeded()
     if not _running:
         _running = True
+        _session_id = f"mon_{uuid4().hex[:10]}"
+        _last_started_at = utc_now()
         _task = asyncio.create_task(_event_loop())
         await manager.broadcast("monitoring_started", status().model_dump(mode="json"))
     return status()
@@ -73,7 +77,15 @@ async def stop_monitoring() -> MonitoringStatusResponse:
 def status() -> MonitoringStatusResponse:
     events = [event for event in store.list_monitoring_events() if isinstance(event, MonitoringEvent)]
     last = max((event.created_at for event in events), default=None)
-    return MonitoringStatusResponse(running=_running, event_count=len(events), last_event_at=last)
+    return MonitoringStatusResponse(
+        running=_running,
+        is_running=_running,
+        session_id=_session_id,
+        last_started_at=_last_started_at,
+        event_count=len(events),
+        last_event_at=last,
+        active_connections=len(manager.connections),
+    )
 
 
 def list_events(limit: int = 100) -> MonitoringEventsResponse:

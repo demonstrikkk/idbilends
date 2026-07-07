@@ -13,8 +13,9 @@ export class ApiError extends Error {
 }
 
 type ApiOptions = {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PATCH";
   body?: unknown;
+  formData?: FormData;
   searchParams?: Record<string, string | number | undefined | null>;
 };
 
@@ -28,10 +29,10 @@ export async function apiFetch<T>(path: string, schema: z.ZodType<T>, options: A
 
   const response = await fetch(url.toString(), {
     method: options.method ?? "GET",
-    headers: {
+    headers: options.formData ? undefined : {
       "Content-Type": "application/json"
     },
-    body: options.body ? JSON.stringify(options.body) : undefined
+    body: options.formData ?? (options.body ? JSON.stringify(options.body) : undefined)
   });
 
   const payload: unknown = await response.json().catch(() => null);

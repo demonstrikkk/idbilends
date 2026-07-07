@@ -20,8 +20,8 @@ export default function HomePage() {
                 A bank-grade cockpit for Financial Health Score, Prospect Readiness, suggested credit posture, verification gaps, risk monitoring, and audit context.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/case-inbox" className="inline-flex items-center gap-2 rounded bg-ink px-5 py-3 text-sm font-semibold text-white hover:bg-navy">
-                  Open Case Inbox
+                <Link href="/command-center" className="inline-flex items-center gap-2 rounded bg-ink px-5 py-3 text-sm font-semibold text-white hover:bg-navy">
+                  Open Command Center
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link href="/msmes" className="inline-flex items-center gap-2 rounded border border-line px-5 py-3 text-sm font-semibold text-ink hover:bg-panel2">

@@ -19,14 +19,15 @@ The frontend expects the Phase 1 backend at:
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
-The current backend exposes unversioned routes such as `/msmes`, `/scores/{id}/generate`, `/prospects/{id}/signals`, `/audit/{id}`, `/health`, and `/ready`. The product docs describe `/api/v1` as the preferred future base path, so the frontend keeps the base URL configurable.
+The current backend exposes unversioned routes such as `/command-center/cases`, `/msmes`, `/scores/{id}/generate`, `/prospects/{id}/signals`, `/audit/{id}`, `/health`, and `/ready`. The product docs describe `/api/v1` as the preferred future base path, so the frontend keeps the base URL configurable.
 
 ## Backend-backed pages
 
+- `/command-center`: `GET /command-center/cases`, evidence drawer, Copilot drawer, and monitoring event injection.
 - `/case-inbox`: `GET /case-inbox`.
 - `/msmes`: credit file register from `GET /portfolio/cases`.
 - `/msmes/{id}`: flagship Credit File workbench from `GET /credit-file/{id}`.
-- `/data-room`: selected credit file evidence status from `GET /credit-file/{id}`.
+- `/data-room`: selected credit file evidence records, document preview, extracted fields, source mapping, and status updates from `GET /credit-file/{id}` plus evidence endpoints.
 - `/evidence-map`: `GET /credit-file/{id}/evidence-map`.
 - `/copilot`: case-aware chat through `POST /copilot/{id}/chat` plus existing brief/stream controls.
 - `/portfolio`: portfolio-level signals.
