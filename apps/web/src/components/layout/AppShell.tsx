@@ -36,6 +36,7 @@ const primaryWorkflow = [
     ]
   },
   { href: "/copilot", label: "Credit Copilot", icon: MessageSquareText },
+  { href: "/monitoring", label: "Live Monitoring", icon: ActivitySquare },
   { href: "/portfolio", label: "Portfolio Signals", icon: BarChart3 },
   { href: "/governance", label: "Governance", icon: ShieldCheck }
 ];
@@ -196,6 +197,7 @@ const routeLabels: Record<string, string> = {
   "data-room": "Data Room",
   "evidence-map": "Evidence Map",
   copilot: "Credit Copilot",
+  monitoring: "Live Monitoring",
   dashboard: "Overview",
   watchlist: "Watchlist",
   portfolio: "Portfolio Signals",

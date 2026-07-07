@@ -13,6 +13,7 @@ Phase: 3.7 Product Realignment + Banker Workbench Rebuild
 | `/evidence-map` | Source-to-underwriting evidence trace | `GET /credit-file/{id}/evidence-map` | Missing source data is labelled unavailable, not fabricated. |
 | `/copilot` | Case-aware Copilot chat and brief generation | `GET /portfolio/cases`, `POST /copilot/{id}/chat`, existing brief/stream endpoints | Chat answers are backend-generated from sanitized context. |
 | `/portfolio` | Portfolio-level signals | `GET /portfolio/cases`, `GET /portfolio/summary`, related aggregation endpoints | Current snapshot only; no fake history. |
+| `/monitoring` | Live synthetic credit monitoring | `GET /monitoring/live-cases`, `POST /monitoring/start`, `POST /monitoring/stop`, `POST /monitoring/events/manual`, `WS /ws/monitoring` | Events, deltas, drift indicators, and missingness counts are backend-generated. |
 | `/governance` | Bank-safe operating controls | `GET /health`, `GET /ready`, `GET /copilot/provider/status`, `GET /audit/{id}` | Shows current provider and audit state only. |
 
 ## Allowed Frontend Static Data
@@ -28,6 +29,7 @@ Phase: 3.7 Product Realignment + Banker Workbench Rebuild
 - Hardcoded MSME rows.
 - Hardcoded scores, warnings, alerts, or Copilot answers.
 - Fake report history, model history, policy approvals, or owner queues.
+- Frontend-only score history, monitoring events, score deltas, or market overlay impacts.
 
 ## 21st.dev
 

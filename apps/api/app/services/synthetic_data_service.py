@@ -13,7 +13,10 @@ def seed_demo_data(reset: bool = True, seed: int = 42, profile_count: int = 9, r
     if reset:
         store.reset()
     rng = Random(seed)
-    profiles = _profiles(rng)[:profile_count]
+    profiles = _profiles(rng)
+    if profile_count > len(profiles):
+        profiles.extend(_scaled_profiles(rng, len(profiles) + 1, profile_count))
+    profiles = profiles[:profile_count]
     for profile in profiles:
         store.upsert_profile(profile)
     for profile in profiles:
@@ -101,6 +104,17 @@ def _profile(
     financials: FinancialSnapshotSchema,
     documents: DocumentStatusSchema,
 ) -> MSMEDetail:
+    regions = {
+        "Rajasthan": "North",
+        "Madhya Pradesh": "Central",
+        "Maharashtra": "West",
+        "Uttar Pradesh": "North",
+        "Karnataka": "South",
+        "Gujarat": "West",
+        "Kerala": "South",
+        "Haryana": "North",
+    }
+    zones = ["Zone A", "Zone B", "Zone C", "Zone D"]
     return MSMEDetail(
         id=f"msme_{idx:03d}",
         business_name=name,
@@ -108,6 +122,13 @@ def _profile(
         scenario_label=scenario,
         city=city,
         state=state,
+        region=regions.get(state, "West"),
+        zone=zones[(idx - 1) % len(zones)],
+        branch=f"{city} MSME Branch",
+        relationship_manager=["Arjun Singh", "Meera Rao", "Vikram Patel", "Nisha Menon"][(idx - 1) % 4],
+        sector_tags=_sector_tags(segment, scenario),
+        monitoring_status="normal",
+        last_updated=utc_now(),
         business_vintage_months=vintage,
         employee_count=employees,
         requested_credit_amount=requested,
@@ -129,3 +150,150 @@ def _profiles(rng: Random) -> list[MSMEDetail]:
         _profile(8, "Metro Fabrication Works", Segment.small_manufacturer, ScenarioLabel.debt_overload, "Faridabad", "Haryana", 46, 21, 2000000, _financial(680000, 650000, 38000, 0.52, -0.18, -0.24, 245000, 2400000, 3, 5, 0.61, 0.57, 0.37, 64, None, 0.48, 1.06), _doc(gst=DocumentAvailability.partial, itr=DocumentAvailability.missing, missing=["itr"])),
         _profile(9, "Nova Wholesale Links", Segment.trader, ScenarioLabel.suspicious_spike, "Nagpur", "Maharashtra", 20, 8, 1500000, _financial(820000, 540000, 66000, 0.49, 0.74, 0.91, 78000, 500000, 1, 2, 0.66, 0.62, 0.29, 52, 0.62, 0.61, 2.15), _doc(bank=DocumentAvailability.partial, gst=DocumentAvailability.partial, bureau=DocumentAvailability.missing, itr=DocumentAvailability.missing, missing=["bureau_report", "itr"])),
     ]
+
+
+def _scaled_profiles(rng: Random, start_idx: int, profile_count: int) -> list[MSMEDetail]:
+    cities = [
+        ("Ahmedabad", "Gujarat"),
+        ("Chennai", "Tamil Nadu"),
+        ("Hyderabad", "Telangana"),
+        ("Kolkata", "West Bengal"),
+        ("Delhi", "Delhi"),
+        ("Mumbai", "Maharashtra"),
+        ("Coimbatore", "Tamil Nadu"),
+        ("Bhopal", "Madhya Pradesh"),
+        ("Mysuru", "Karnataka"),
+        ("Ludhiana", "Punjab"),
+        ("Noida", "Uttar Pradesh"),
+        ("Vadodara", "Gujarat"),
+    ]
+    segment_weights = [
+        (Segment.retail_shop, 22),
+        (Segment.small_manufacturer, 24),
+        (Segment.services_firm, 16),
+        (Segment.trader, 16),
+        (Segment.food_business, 12),
+        (Segment.digital_seller, 7),
+        (Segment.gem_like_seller, 3),
+    ]
+    scenario_weights = [
+        (ScenarioLabel.healthy_growth, 24),
+        (ScenarioLabel.stable_moderate, 30),
+        (ScenarioLabel.seasonal_volatility, 12),
+        (ScenarioLabel.cashflow_stress, 10),
+        (ScenarioLabel.high_buyer_concentration, 9),
+        (ScenarioLabel.document_gap, 8),
+        (ScenarioLabel.debt_overload, 5),
+        (ScenarioLabel.suspicious_spike, 2),
+    ]
+    prefixes = ["Shakti", "Bharat", "Unity", "Crescent", "Savera", "Summit", "Lotus", "Prime", "Udaan", "Triveni"]
+    suffixes = {
+        Segment.retail_shop: "Retail Mart",
+        Segment.small_manufacturer: "Engineering Works",
+        Segment.services_firm: "Business Services",
+        Segment.trader: "Trading Co",
+        Segment.food_business: "Foods",
+        Segment.digital_seller: "Digital Supplies",
+        Segment.gem_like_seller: "GeM Office Needs",
+    }
+    profiles: list[MSMEDetail] = []
+    for idx in range(start_idx, profile_count + 1):
+        segment = _weighted_choice(rng, segment_weights)
+        scenario = _weighted_choice(rng, scenario_weights)
+        city, state = cities[(idx + rng.randint(0, len(cities) - 1)) % len(cities)]
+        revenue = rng.randint(260000, 1250000)
+        expense_ratio = rng.uniform(0.58, 0.92)
+        volatility = rng.uniform(0.12, 0.38)
+        growth6 = rng.uniform(-0.08, 0.24)
+        buyer = rng.uniform(0.18, 0.48)
+        delay = rng.randint(8, 36)
+        bounce6 = rng.choice([0, 0, 0, 1, 1, 2])
+        gst = rng.uniform(0.76, 0.96)
+        if scenario == ScenarioLabel.cashflow_stress:
+            expense_ratio = rng.uniform(0.9, 1.03)
+            volatility = rng.uniform(0.36, 0.58)
+        elif scenario == ScenarioLabel.debt_overload:
+            bounce6 = rng.randint(3, 5)
+        elif scenario == ScenarioLabel.high_buyer_concentration:
+            buyer = rng.uniform(0.56, 0.78)
+            delay = rng.randint(35, 65)
+        elif scenario == ScenarioLabel.seasonal_volatility:
+            volatility = rng.uniform(0.38, 0.55)
+            growth6 = rng.uniform(-0.18, 0.08)
+        elif scenario == ScenarioLabel.suspicious_spike:
+            growth6 = rng.uniform(0.72, 0.98)
+            gst = rng.uniform(0.58, 0.72)
+        elif scenario == ScenarioLabel.healthy_growth:
+            expense_ratio = rng.uniform(0.58, 0.74)
+            growth6 = rng.uniform(0.08, 0.24)
+            bounce6 = 0
+        bank_status = DocumentAvailability.available
+        gst_status = DocumentAvailability.available if gst >= 0.82 else DocumentAvailability.partial
+        bureau_status = DocumentAvailability.available
+        itr_status = DocumentAvailability.available
+        missing: list[str] = []
+        if scenario == ScenarioLabel.document_gap:
+            bank_status = rng.choice([DocumentAvailability.partial, DocumentAvailability.available])
+            bureau_status = DocumentAvailability.missing
+            itr_status = DocumentAvailability.missing
+            missing = ["bureau_report", "itr"]
+        profiles.append(
+            _profile(
+                idx,
+                f"{prefixes[idx % len(prefixes)]} {suffixes[segment]} {idx:04d}",
+                segment,
+                scenario,
+                city,
+                state,
+                rng.randint(18, 120),
+                rng.randint(4, 48),
+                rng.randint(400000, 2800000),
+                _financial(
+                    revenue,
+                    int(revenue * expense_ratio),
+                    rng.randint(35000, 360000),
+                    round(volatility, 2),
+                    round(growth6 + rng.uniform(-0.08, 0.08), 2),
+                    round(growth6, 2),
+                    rng.randint(25000, 180000),
+                    rng.randint(150000, 2600000),
+                    min(bounce6, 2),
+                    bounce6,
+                    round(gst, 2),
+                    round(buyer, 2),
+                    round(rng.uniform(0.35, 0.92), 2),
+                    delay,
+                    round(rng.uniform(0.76, 0.98), 2) if segment in {Segment.digital_seller, Segment.gem_like_seller} else None,
+                    round(rng.uniform(0.12, 0.56), 2),
+                    round(rng.uniform(1.0, 2.25), 2) if scenario == ScenarioLabel.suspicious_spike else round(rng.uniform(0.95, 1.28), 2),
+                ),
+                _doc(bank=bank_status, gst=gst_status, bureau=bureau_status, itr=itr_status, gem=DocumentAvailability.available if segment == Segment.gem_like_seller else DocumentAvailability.not_applicable, missing=missing),
+            )
+        )
+    return profiles
+
+
+def _weighted_choice(rng: Random, weighted_items: list[tuple[object, int]]):
+    total = sum(weight for _item, weight in weighted_items)
+    pick = rng.randint(1, total)
+    running = 0
+    for item, weight in weighted_items:
+        running += weight
+        if pick <= running:
+            return item
+    return weighted_items[-1][0]
+
+
+def _sector_tags(segment: Segment, scenario: ScenarioLabel) -> list[str]:
+    tags = {
+        Segment.retail_shop: ["retail", "kirana", "local_trade"],
+        Segment.small_manufacturer: ["manufacturing", "input_cost_sensitive"],
+        Segment.services_firm: ["services", "receivables"],
+        Segment.trader: ["trading", "buyer_concentration"],
+        Segment.food_business: ["food", "seasonal_demand"],
+        Segment.digital_seller: ["digital_seller", "platform_sales"],
+        Segment.gem_like_seller: ["gem_like", "public_procurement"],
+    }[segment]
+    if scenario in {ScenarioLabel.high_buyer_concentration, ScenarioLabel.suspicious_spike, ScenarioLabel.debt_overload}:
+        tags.append(scenario.value)
+    return tags

@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from app.schemas.audit import AuditEventSchema
 from app.schemas.msme import DocumentStatusSchema, FinancialSnapshotSchema, MSMEDetail
 from app.schemas.prospect import ProspectSignalOutputSchema
-from app.schemas.score import ScoreOutputSchema
+from app.schemas.score import ScoreHistoryEntry, ScoreOutputSchema
 
 
 @dataclass
@@ -12,12 +12,16 @@ class DemoStore:
     scores: dict[str, list[ScoreOutputSchema]] = field(default_factory=dict)
     prospects: dict[str, list[ProspectSignalOutputSchema]] = field(default_factory=dict)
     audit_events: list[AuditEventSchema] = field(default_factory=list)
+    score_history: dict[str, list[ScoreHistoryEntry]] = field(default_factory=dict)
+    monitoring_events: list[object] = field(default_factory=list)
 
     def reset(self) -> None:
         self.profiles.clear()
         self.scores.clear()
         self.prospects.clear()
         self.audit_events.clear()
+        self.score_history.clear()
+        self.monitoring_events.clear()
 
     def upsert_profile(self, profile: MSMEDetail) -> None:
         self.profiles[profile.id] = profile
@@ -32,6 +36,16 @@ class DemoStore:
         self.scores.setdefault(score.msme_id, []).append(score)
         profile = self.profiles[score.msme_id]
         self.profiles[score.msme_id] = profile.model_copy(update={"latest_score_id": score.id})
+
+    def add_score_history(self, entry: ScoreHistoryEntry) -> None:
+        self.score_history.setdefault(entry.msme_id, []).append(entry)
+
+    def list_score_history(self, msme_id: str) -> list[ScoreHistoryEntry]:
+        return self.score_history.get(msme_id, [])
+
+    def latest_score_history(self, msme_id: str) -> ScoreHistoryEntry | None:
+        entries = self.score_history.get(msme_id, [])
+        return entries[-1] if entries else None
 
     def latest_score(self, msme_id: str) -> ScoreOutputSchema | None:
         scores = self.scores.get(msme_id, [])
@@ -48,6 +62,12 @@ class DemoStore:
 
     def add_audit_event(self, event: AuditEventSchema) -> None:
         self.audit_events.append(event)
+
+    def add_monitoring_event(self, event: object) -> None:
+        self.monitoring_events.append(event)
+
+    def list_monitoring_events(self) -> list[object]:
+        return list(self.monitoring_events)
 
     def list_audit_events(self, msme_id: str, event_type: str | None = None) -> list[AuditEventSchema]:
         events = [event for event in self.audit_events if event.msme_id == msme_id]

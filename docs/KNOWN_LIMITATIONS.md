@@ -11,7 +11,9 @@ LendSignal 360 is a demo-grade MSME credit intelligence workbench.
 - Uses deterministic scoring rules, not a trained production credit model.
 - Groq is optional and replaceable through the backend provider adapter.
 - Credit Copilot is decision-support only and depends on sanitized internal context.
-- Model and score history are current snapshots only unless persisted later.
+- Score history and monitoring events are now captured in memory for the demo, but require PostgreSQL persistence for production retention.
+- Live monitoring is a synthetic simulator, not a production Kafka/Flink stream.
+- Market overlays are deterministic simulated context, not live external market data.
 - Rate limiting is documented but not implemented.
 - Audit events are demo in-memory events until persistence is added.
 - Document upload, OCR, parsing, and file retention workflows are roadmap items.

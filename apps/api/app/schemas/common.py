@@ -64,6 +64,6 @@ class DocumentAvailability(StrEnum):
 
 class Pagination(BaseModel):
     total: int
-    limit: int = Field(ge=1, le=100)
+    limit: int = Field(ge=1, le=1000)
     offset: int = Field(ge=0)
     has_more: bool

@@ -26,9 +26,13 @@ Yes. The provider is behind a backend adapter. Groq is optional, mock mode works
 
 ## What is production-ready vs future work?
 
-Demo-ready: local web/API app, synthetic data, deterministic scoring, Prospect Assist, Credit File, Data Room, Evidence Map, Credit Copilot provider modes, audit events, tests, Docker files, and CI.
+Demo-ready: local web/API app, 1000-profile synthetic scale simulation, deterministic scoring, score history, monitoring simulator, market overlay simulation, Prospect Assist, Credit File, Data Room, Evidence Map, Credit Copilot provider modes, audit events, tests, Docker files, and CI.
 
 Future production work: authentication, RBAC, PostgreSQL persistence, durable audit retention, rate limiting, real integrations, observability, document upload/parsing, security hardening, and deployment controls.
+
+## Does the market overlay change the credit policy score?
+
+No. The backend returns `policy_score` and `market_adjusted_score` separately. Overlay effects are versioned, cited, and explainable, and the policy score remains the deterministic source of truth.
 
 ## What is the business impact?
 

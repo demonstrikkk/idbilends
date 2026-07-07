@@ -37,6 +37,17 @@ def test_portfolio_cases_endpoint_returns_score_and_prospect_outputs():
     assert items[0]["prospect"]["prospect_score"] >= 0
 
 
+def test_portfolio_cases_support_pagination_and_filters():
+    response = client.post("/demo/seed", json={"reset": True, "seed": 42, "profile_count": 1000})
+    assert response.status_code == 200
+    page = client.get("/portfolio/cases?limit=25&offset=25&sort=score_asc&query=Branch")
+    assert page.status_code == 200
+    body = page.json()
+    assert len(body["items"]) == 25
+    assert body["pagination"]["total"] >= 25
+    assert body["pagination"]["has_more"] is True
+
+
 def test_portfolio_summary_endpoint_is_derived_from_cases():
     seed()
     response = client.get("/portfolio/summary")

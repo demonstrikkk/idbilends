@@ -4,7 +4,7 @@
 
 - PostgreSQL-backed repositories.
 - Alembic migrations.
-- Durable audit log and score history.
+- Durable audit log, score history, monitoring events, and overlay versions.
 - Environment-specific secrets.
 - CI/CD deployment gates, backups, and restore drills.
 
@@ -35,11 +35,17 @@
 
 ## Scoring And Explainability
 
-- Persisted score history.
+- Production persistence for Phase 6 score history and score deltas.
 - Model monitoring with real production history.
 - Trained tabular model only after verified, consented data exists.
 - SHAP-style explainability for model-backed scores.
 - Calibration and policy overlays.
+
+## Live Monitoring
+
+- Replace the in-memory simulator with durable event ingestion.
+- Add role-based alert assignment and officer action workflow.
+- Add production observability for WebSocket sessions and event processing.
 
 ## Search And Operations
 

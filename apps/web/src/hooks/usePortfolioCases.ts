@@ -11,7 +11,7 @@ export function usePortfolioCases() {
   const queryClient = useQueryClient();
   const casesQuery = useQuery({
     queryKey: ["portfolio", "cases"],
-    queryFn: getPortfolioCases,
+    queryFn: () => getPortfolioCases(),
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false
   });

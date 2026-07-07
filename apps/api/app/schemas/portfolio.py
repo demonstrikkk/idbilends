@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+from app.schemas.common import Pagination
 from app.schemas.msme import MSMEListItem
 from app.schemas.prospect import ProspectSignalOutputSchema
 from app.schemas.score import ScoreOutputSchema
@@ -13,6 +14,7 @@ class PortfolioCase(BaseModel):
 
 class PortfolioCasesResponse(BaseModel):
     items: list[PortfolioCase]
+    pagination: Pagination | None = None
 
 
 class PortfolioSummaryResponse(BaseModel):

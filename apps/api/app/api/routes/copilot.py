@@ -11,6 +11,8 @@ from app.core.config import get_settings
 from app.schemas.common import utc_now
 from app.schemas.credit_file import CopilotChatRequest, CopilotChatResponse
 from app.services.audit_service import create_audit_event
+from app.services.portfolio_service import get_portfolio_cases
+from app.services.score_history_service import get_latest_delta, get_score_movements
 
 router = APIRouter(prefix="/copilot", tags=["copilot"])
 
@@ -37,6 +39,40 @@ def get_copilot_provider_status() -> CopilotProviderStatus:
         active_default_provider=active,
         message=message,
     )
+
+
+@router.post("/portfolio/chat")
+async def portfolio_chat(payload: CopilotChatRequest, request: Request) -> dict:
+    question = payload.message.strip().lower()
+    cited_inputs = ["portfolio_cases", "score_history", "score_movements", "deterministic_score_outputs"]
+    if "dropped" in question or "drop" in question or "deteriorat" in question:
+        movements = [item for item in get_score_movements(min_delta=1, limit=25).items if item.delta < 0]
+        answer = f"Found {len(movements)} cases with score deterioration in the current monitoring history. Prioritize the largest negative deltas for human review and evidence checks."
+        data = [item.model_dump(mode="json") for item in movements[:10]]
+    elif "human action" in question or "need" in question or "risk" in question:
+        cases = get_portfolio_cases(limit=25, sort="confidence_asc").items
+        flagged = [case for case in cases if case.score.risk_tier.value in {"elevated", "high"} or case.score.data_confidence < 70]
+        answer = f"Found {len(flagged)} current cases needing officer attention based on risk tier, low confidence, or missing evidence."
+        data = [case.model_dump(mode="json") for case in flagged[:10]]
+    elif "compare" in question:
+        cases = get_portfolio_cases(limit=2, sort="prospect_score_desc").items
+        answer = "Comparison uses existing deterministic score, Prospect Assist, confidence, and risk-tier outputs only."
+        data = [case.model_dump(mode="json") for case in cases]
+    else:
+        summary = get_score_movements(min_delta=0, limit=10).items
+        answer = "Portfolio Copilot summarized current monitoring movements from backend score history. It does not calculate scores or make final lending decisions."
+        data = [item.model_dump(mode="json") for item in summary]
+    create_audit_event("copilot_portfolio_chat_generated", None, {"success": True, "cited_inputs": cited_inputs}, request_id=request.state.request_id)
+    return {
+        "answer": answer,
+        "confidence": "medium",
+        "assumptions": ["Uses current in-memory synthetic demo records.", "Score values are deterministic backend outputs."],
+        "recommended_human_action": "Review cited cases, verify evidence gaps, and route material changes through the bank officer workflow.",
+        "cited_internal_inputs": cited_inputs,
+        "decision_support_only": True,
+        "data": data,
+        "created_at": utc_now(),
+    }
 
 
 @router.post("/{msme_id}/brief", response_model=CopilotBriefPayload)
@@ -94,6 +130,25 @@ async def chat_with_copilot(msme_id: str, payload: CopilotChatRequest, request: 
         model=brief.model,
         created_at=utc_now(),
     )
+
+
+@router.post("/{msme_id}/explain-delta")
+async def explain_delta(msme_id: str, request: Request) -> dict:
+    entry = get_latest_delta(msme_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail={"code": "SCORE_DELTA_NOT_FOUND", "message": "No score history delta is available for this MSME."})
+    reason = entry.reasons[0].detail if entry.reasons else "Score changed after deterministic recomputation."
+    create_audit_event("copilot_delta_explained", msme_id, {"score_history_id": entry.id, "success": True}, request_id=request.state.request_id)
+    return {
+        "summary": f"Score moved from {entry.previous_score} to {entry.new_score}, a delta of {entry.delta}.",
+        "confidence": "high",
+        "assumptions": ["Explanation cites stored score history and deterministic trace fields only."],
+        "recommended_human_action": "Review the changed features and request updated evidence where the movement is adverse or low-confidence.",
+        "cited_internal_inputs": ["score_history", "score_delta", "changed_components", "changed_features"],
+        "reason": reason,
+        "entry": entry.model_dump(mode="json"),
+        "decision_support_only": True,
+    }
 
 
 @router.get("/{msme_id}/brief/stream")

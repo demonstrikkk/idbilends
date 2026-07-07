@@ -41,7 +41,11 @@ See [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) for the 4-minute script.
 ## Features
 
 - Synthetic MSME demo data only.
+- Deterministic scale simulation up to 1000 synthetic MSME profiles.
 - Deterministic Financial Health Score.
+- Score history, score deltas, and monitoring movements.
+- Live monitoring simulator with WebSocket updates and manual event injection.
+- Adaptive market overlay simulation with policy score kept separate.
 - Risk tier, data confidence, suggested range, positive and negative factors.
 - Prospect Assist priority, likely credit need, product fit, and recommended human action.
 - Case Inbox and Credit File workbench.
@@ -148,7 +152,20 @@ GET /copilot/provider/status
 - `POST /scores/{msme_id}/generate`
 - `GET /prospects/{msme_id}/signals`
 - `GET /portfolio/cases`
+- `GET /portfolio/cases?limit=&offset=&sort=&risk_tier=&segment=&query=`
 - `GET /portfolio/summary`
+- `GET /score-history/{msme_id}`
+- `GET /score-history/{msme_id}/latest-delta`
+- `GET /monitoring/score-movements`
+- `POST /monitoring/start`
+- `POST /monitoring/stop`
+- `GET /monitoring/status`
+- `GET /monitoring/events`
+- `POST /monitoring/events/manual`
+- `WS /ws/monitoring`
+- `GET /scoring/weight-profiles`
+- `GET /market-overlays`
+- `POST /market-overlays/simulate`
 - `GET /case-inbox`
 - `GET /credit-file/{msme_id}`
 - `GET /credit-file/{msme_id}/evidence-map`
@@ -166,6 +183,7 @@ GET /copilot/provider/status
 - `/evidence-map`
 - `/copilot`
 - `/portfolio`
+- `/monitoring`
 - `/governance`
 - `/watchlist`
 - `/alerts`
@@ -199,6 +217,7 @@ npm run build
 - No production auth/RBAC yet.
 - No live AA, GST, Udyam, GeM, ULI, bureau, or core-banking integrations.
 - No final lending approval or final rejection.
+- Market overlays are separate from the deterministic policy score.
 - Rate limiting and durable audit retention are future production work.
 
 See [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md).
@@ -216,3 +235,6 @@ See [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md).
 - [Security Checklist](docs/SECURITY_CHECKLIST.md)
 - [Credit File Workflow](docs/CREDIT_FILE_WORKFLOW.md)
 - [UI Backend Integrity Audit](docs/UI_BACKEND_INTEGRITY_AUDIT.md)
+- [Live Monitoring Design](docs/LIVE_MONITORING_DESIGN.md)
+- [Adaptive Scoring Design](docs/ADAPTIVE_SCORING_DESIGN.md)
+- [Scale Simulation Design](docs/SCALE_SIMULATION_DESIGN.md)

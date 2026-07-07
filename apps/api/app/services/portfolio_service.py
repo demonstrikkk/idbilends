@@ -1,7 +1,7 @@
 from collections import Counter, defaultdict
 
 from app.db.repository import store
-from app.schemas.common import RiskTier
+from app.schemas.common import Pagination, RiskTier
 from app.schemas.msme import MSMEListItem
 from app.schemas.portfolio import (
     AlertItem,
@@ -19,15 +19,31 @@ from app.services.scoring_service import generate_score
 from app.services.synthetic_data_service import ensure_seeded
 
 
-def get_portfolio_cases() -> PortfolioCasesResponse:
+def get_portfolio_cases(
+    limit: int = 100,
+    offset: int = 0,
+    sort: str = "prospect_score_desc",
+    risk_tier: str | None = None,
+    segment: str | None = None,
+    query: str | None = None,
+    city: str | None = None,
+    zone: str | None = None,
+    branch: str | None = None,
+    scenario: str | None = None,
+) -> PortfolioCasesResponse:
     ensure_seeded()
     cases = [_case_for(profile.id) for profile in store.list_profiles()]
-    cases.sort(key=lambda item: item.prospect.prospect_score, reverse=True)
-    return PortfolioCasesResponse(items=cases)
+    cases = _filter_cases(cases, risk_tier, segment, query, city, zone, branch, scenario)
+    cases = _sort_cases(cases, sort)
+    total = len(cases)
+    return PortfolioCasesResponse(
+        items=cases[offset : offset + limit],
+        pagination=Pagination(total=total, limit=limit, offset=offset, has_more=offset + limit < total),
+    )
 
 
 def get_portfolio_summary() -> PortfolioSummaryResponse:
-    cases = get_portfolio_cases().items
+    cases = get_portfolio_cases(limit=1000).items
     scores = [case.score for case in cases]
     risk_distribution = Counter(score.risk_tier.value for score in scores)
     return PortfolioSummaryResponse(
@@ -45,7 +61,7 @@ def get_portfolio_summary() -> PortfolioSummaryResponse:
 
 
 def get_watchlist() -> WatchlistResponse:
-    watched = [case for case in get_portfolio_cases().items if _is_watched(case)]
+    watched = [case for case in get_portfolio_cases(limit=1000).items if _is_watched(case)]
     return WatchlistResponse(
         items=watched,
         total_watched_accounts=len(watched),
@@ -56,7 +72,7 @@ def get_watchlist() -> WatchlistResponse:
 
 
 def get_alerts() -> AlertsResponse:
-    cases = get_portfolio_cases().items
+    cases = get_portfolio_cases(limit=1000).items
     alerts: list[AlertItem] = []
     for case in cases:
         for trigger in case.score.early_warning_triggers:
@@ -97,7 +113,7 @@ def get_alerts() -> AlertsResponse:
 
 
 def get_portfolio_insights() -> PortfolioInsightsResponse:
-    cases = get_portfolio_cases().items
+    cases = get_portfolio_cases(limit=1000).items
     return PortfolioInsightsResponse(
         total_borrowers=len(cases),
         average_health_score=_avg([case.score.score for case in cases]),
@@ -112,7 +128,7 @@ def get_portfolio_insights() -> PortfolioInsightsResponse:
 
 
 def get_model_monitor_snapshot() -> ModelMonitorSnapshotResponse:
-    cases = get_portfolio_cases().items
+    cases = get_portfolio_cases(limit=1000).items
     scores = [case.score for case in cases]
     return ModelMonitorSnapshotResponse(
         applications_scored=len(scores),
@@ -139,6 +155,13 @@ def _case_for(msme_id: str) -> PortfolioCase:
         scenario_label=profile.scenario_label,
         city=profile.city,
         state=profile.state,
+        region=profile.region,
+        zone=profile.zone,
+        branch=profile.branch,
+        relationship_manager=profile.relationship_manager,
+        sector_tags=profile.sector_tags,
+        monitoring_status=profile.monitoring_status,
+        last_updated=profile.last_updated,
         requested_credit_amount=profile.requested_credit_amount,
         monthly_revenue_avg=profile.financials.monthly_revenue_avg,
         health_score=score.score,
@@ -163,6 +186,58 @@ def _is_watched(case: PortfolioCase) -> bool:
         or any(token in warning.lower() for warning in case.score.missing_data_warnings for token in ["bank", "bureau", "itr", "gst"])
         or case.score.recommendation.value in {"review_required", "insufficient_data"}
     )
+
+
+def _filter_cases(
+    cases: list[PortfolioCase],
+    risk_tier: str | None,
+    segment: str | None,
+    query: str | None,
+    city: str | None,
+    zone: str | None,
+    branch: str | None,
+    scenario: str | None,
+) -> list[PortfolioCase]:
+    filtered = cases
+    if risk_tier:
+        filtered = [case for case in filtered if case.score.risk_tier.value == risk_tier]
+    if segment:
+        filtered = [case for case in filtered if case.item.segment.value == segment]
+    if city:
+        filtered = [case for case in filtered if case.item.city.lower() == city.lower()]
+    if zone:
+        filtered = [case for case in filtered if (case.item.zone or "").lower() == zone.lower()]
+    if branch:
+        filtered = [case for case in filtered if branch.lower() in (case.item.branch or "").lower()]
+    if scenario:
+        filtered = [case for case in filtered if case.item.scenario_label.value == scenario]
+    if query:
+        needle = query.lower()
+        filtered = [
+            case
+            for case in filtered
+            if needle in case.item.business_name.lower()
+            or needle in case.item.city.lower()
+            or needle in case.item.state.lower()
+            or needle in (case.item.zone or "").lower()
+            or needle in (case.item.branch or "").lower()
+            or needle in case.item.segment.value.lower()
+            or needle in case.item.scenario_label.value.lower()
+            or any(needle in tag.lower() for tag in case.item.sector_tags)
+        ]
+    return filtered
+
+
+def _sort_cases(cases: list[PortfolioCase], sort: str) -> list[PortfolioCase]:
+    sorters = {
+        "score_asc": lambda case: case.score.score,
+        "score_desc": lambda case: -case.score.score,
+        "prospect_score_desc": lambda case: -case.prospect.prospect_score,
+        "confidence_asc": lambda case: case.score.data_confidence,
+        "requested_desc": lambda case: -case.item.requested_credit_amount,
+        "business_name_asc": lambda case: case.item.business_name.lower(),
+    }
+    return sorted(cases, key=sorters.get(sort, sorters["prospect_score_desc"]))
 
 
 def _avg(values: list[int]) -> int:

@@ -12,7 +12,7 @@ import { titleize } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 export default function EvidenceMapPage() {
-  const casesQuery = useQuery({ queryKey: ["portfolio", "cases"], queryFn: getPortfolioCases, staleTime: 60_000 });
+  const casesQuery = useQuery({ queryKey: ["portfolio", "cases"], queryFn: () => getPortfolioCases(), staleTime: 60_000 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const activeId = selectedId ?? casesQuery.data?.items[0]?.item.id ?? "";
   const mapQuery = useQuery({ queryKey: ["evidence-map", activeId], queryFn: () => getEvidenceMap(activeId), enabled: Boolean(activeId), staleTime: 60_000 });

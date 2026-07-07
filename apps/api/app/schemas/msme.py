@@ -44,6 +44,13 @@ class MSMEDetail(BaseModel):
     scenario_label: ScenarioLabel
     city: str
     state: str
+    region: str | None = None
+    zone: str | None = None
+    branch: str | None = None
+    relationship_manager: str | None = None
+    sector_tags: list[str] = Field(default_factory=list)
+    monitoring_status: str = "normal"
+    last_updated: datetime | None = None
     business_vintage_months: int
     employee_count: int
     requested_credit_amount: int
@@ -60,6 +67,13 @@ class MSMEListItem(BaseModel):
     scenario_label: ScenarioLabel
     city: str
     state: str
+    region: str | None = None
+    zone: str | None = None
+    branch: str | None = None
+    relationship_manager: str | None = None
+    sector_tags: list[str] = Field(default_factory=list)
+    monitoring_status: str = "normal"
+    last_updated: datetime | None = None
     requested_credit_amount: int
     monthly_revenue_avg: int
     health_score: int | None = None
@@ -78,7 +92,7 @@ class MSMEListResponse(BaseModel):
 class SeedRequest(BaseModel):
     reset: bool = True
     seed: int = 42
-    profile_count: int = Field(default=9, ge=8, le=50)
+    profile_count: int = Field(default=9, ge=8, le=1000)
 
 
 class SeedResponse(BaseModel):

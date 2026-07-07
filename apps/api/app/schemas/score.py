@@ -55,3 +55,68 @@ class ScoreOutputSchema(BaseModel):
     calculation_trace: list[CalculationTraceItem]
     rule_version: str
     created_at: datetime
+
+
+class ScoreChangeReason(BaseModel):
+    code: str
+    label: str
+    direction: str
+    detail: str
+    source_fields: list[str]
+
+
+class ScoreDelta(BaseModel):
+    previous_score: int | None
+    new_score: int
+    delta: int
+    previous_risk_tier: RiskTier | None
+    new_risk_tier: RiskTier
+    changed_components: list[str]
+    changed_features: list[str]
+    reasons: list[ScoreChangeReason]
+
+
+class ScoreHistoryEntry(BaseModel):
+    id: str
+    msme_id: str
+    score_id: str
+    event_id: str | None = None
+    previous_score: int | None
+    new_score: int
+    delta: int
+    previous_risk_tier: RiskTier | None
+    new_risk_tier: RiskTier
+    changed_components: list[str]
+    changed_features: list[str]
+    reasons: list[ScoreChangeReason]
+    rule_version: str
+    created_at: datetime
+
+
+class ScoreHistoryResponse(BaseModel):
+    items: list[ScoreHistoryEntry]
+
+
+class ScoreDeltaResponse(BaseModel):
+    delta: ScoreDelta | None
+    entry: ScoreHistoryEntry | None
+
+
+class ScoreMovementItem(BaseModel):
+    msme_id: str
+    business_name: str
+    segment: str
+    city: str
+    branch: str | None
+    previous_score: int | None
+    new_score: int
+    delta: int
+    previous_risk_tier: RiskTier | None
+    new_risk_tier: RiskTier
+    reason: str
+    event_id: str | None
+    created_at: datetime
+
+
+class ScoreMovementsResponse(BaseModel):
+    items: list[ScoreMovementItem]

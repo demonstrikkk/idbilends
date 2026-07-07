@@ -7,6 +7,7 @@ from app.schemas.common import DocumentAvailability, RecommendationCategory, Ris
 from app.schemas.msme import DocumentStatusSchema, MSMEDetail
 from app.schemas.score import CalculationTraceItem, ScoreFactor, ScoreOutputSchema
 from app.services.risk_service import get_early_warning_triggers
+from app.services.score_history_service import record_score_history
 
 RULE_VERSION = "score_rules_v1"
 FORBIDDEN_FINAL_WORDS = ("app" + "roved", "rej" + "ected", "guaran" + "teed")
@@ -58,7 +59,7 @@ def _document_confidence(documents: DocumentStatusSchema, suspicious_spike: bool
     return max(0, min(100, confidence)), warnings
 
 
-def generate_score(msme_id: str, persist: bool = True, include_trace: bool = True) -> ScoreOutputSchema:
+def generate_score(msme_id: str, persist: bool = True, include_trace: bool = True, event_id: str | None = None) -> ScoreOutputSchema:
     profile = store.get_profile(msme_id)
     if not profile:
         raise HTTPException(status_code=404, detail={"code": "MSME_NOT_FOUND", "message": "MSME profile was not found."})
@@ -220,7 +221,9 @@ def generate_score(msme_id: str, persist: bool = True, include_trace: bool = Tru
         created_at=utc_now(),
     )
     if persist:
+        previous = store.latest_score(msme_id)
         store.add_score(output)
+        record_score_history(output, previous, event_id=event_id)
     return output
 
 

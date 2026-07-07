@@ -11,7 +11,7 @@ import { titleize } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 export default function CopilotPage() {
-  const casesQuery = useQuery({ queryKey: ["portfolio", "cases"], queryFn: getPortfolioCases, staleTime: 60_000 });
+  const casesQuery = useQuery({ queryKey: ["portfolio", "cases"], queryFn: () => getPortfolioCases(), staleTime: 60_000 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   

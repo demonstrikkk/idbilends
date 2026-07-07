@@ -30,6 +30,7 @@ The current backend exposes unversioned routes such as `/msmes`, `/scores/{id}/g
 - `/evidence-map`: `GET /credit-file/{id}/evidence-map`.
 - `/copilot`: case-aware chat through `POST /copilot/{id}/chat` plus existing brief/stream controls.
 - `/portfolio`: portfolio-level signals.
+- `/monitoring`: live synthetic monitoring controls, WebSocket event stream, score movements, missingness, and drift indicators.
 - `/governance`: health, readiness, provider status, and audit events.
 
 Phase 3.7 pages prefer credit-file aggregation endpoints so the frontend does not own score, evidence, or underwriting derivation logic.
@@ -47,6 +48,7 @@ Phase 3.7 pages prefer credit-file aggregation endpoints so the frontend does no
 - Credit Copilot is backend-backed in Phase 3 through `/copilot/{id}/brief` and `/copilot/{id}/brief/stream`.
 - All visible credit language is decision-support oriented and avoids final automated approval claims.
 - Empty MSME lists show an explicit "Seed Demo Data" action; the frontend does not silently create fabricated records.
+- Phase 6 monitoring screens render backend-generated score history, events, and overlay outputs only.
 
 ## Credit Copilot UI
 

@@ -1,6 +1,6 @@
 # Manual QA Checklist
 
-Phase: 5 Final Demo Polish + Judge-Ready Experience
+Phase: 6 Live Credit Monitoring + Scale Simulation
 
 ## Core Workflow
 
@@ -31,6 +31,22 @@ Phase: 5 Final Demo Polish + Judge-Ready Experience
 - Confirm responses include provider/model, cited internal inputs, and trace.
 - Generate a decision-support brief and stream a brief from the case detail page.
 - Confirm score, risk tier, confidence, and suggested range do not change after Copilot activity.
+
+## Live Monitoring
+
+- Seed 1000 profiles with `POST /demo/seed`.
+- Open `/monitoring`.
+- Start monitoring and confirm the session status changes.
+- Inject a manual adverse event and confirm the live stream receives a backend event.
+- Confirm score movements, top deteriorating cases, top improving cases, missingness, and drift indicators update from backend responses.
+- Confirm `/score-history/{msme_id}` contains the event-linked score delta.
+- Stop monitoring and confirm the session status changes.
+
+## Adaptive Overlay
+
+- Open API docs or use a request client for `/market-overlays/simulate`.
+- Confirm `policy_score` remains separate from `market_adjusted_score`.
+- Confirm overlay output includes version, reason, and trace.
 
 ## Provider Modes
 

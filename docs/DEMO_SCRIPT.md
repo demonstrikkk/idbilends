@@ -17,6 +17,7 @@
 5. `/evidence-map`
 6. `/copilot`
 7. `/governance` only if time remains.
+8. Phase 6 option: `/monitoring` to show a live synthetic event, score delta, and officer action queue.
 
 ## 0:00 - Problem
 
@@ -53,6 +54,10 @@ Return to the Credit File or show `/governance`. Point to recommended human acti
 ## 3:50 - Close
 
 Closing line: "LendSignal 360 is not a loan chatbot; it is an evidence-first MSME credit file workbench that helps IDBI officers review more cases with better traceability and stronger AI governance."
+
+## Phase 6 Live Monitoring Insert
+
+Open `/monitoring`, start the simulated session, and inject `bounce_event_recorded` or `bank_balance_drop`. Show the live event feed, score delta, largest deterioration list, and drift indicators. Say: "The policy score is recomputed by deterministic rules; Copilot and overlays explain changes for human review."
 
 ## Fallbacks
 

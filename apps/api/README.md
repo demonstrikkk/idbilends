@@ -68,6 +68,7 @@ Streaming limitation: Phase 3.6 keeps LangGraph as the fixed orchestrator and em
 ## Aggregation Endpoints
 
 - `GET /portfolio/cases`
+- `GET /portfolio/cases?limit=&offset=&sort=&risk_tier=&segment=&query=`
 - `GET /portfolio/summary`
 - `GET /watchlist`
 - `GET /alerts`
@@ -78,6 +79,14 @@ Streaming limitation: Phase 3.6 keeps LangGraph as the fixed orchestrator and em
 - `GET /credit-file/{msme_id}/evidence-map`
 
 These endpoints are current derived snapshots only. They do not create fake policy databases, model history, report history, or alert persistence.
+
+## Phase 6 Live Monitoring
+
+- `POST /demo/seed` supports `profile_count` up to 1000 while preserving the 9 flagship profiles.
+- `GET /score-history/{msme_id}` and `/latest-delta` expose stored score deltas.
+- `POST /monitoring/start`, `POST /monitoring/stop`, `GET /monitoring/status`, `GET /monitoring/events`, and `POST /monitoring/events/manual` run the in-memory simulator.
+- `WS /ws/monitoring` broadcasts monitoring lifecycle, feature events, score recomputes, alerts, and score deltas.
+- `GET /scoring/weight-profiles`, `GET /market-overlays`, and `POST /market-overlays/simulate` show policy score and market-adjusted score separately.
 
 ## Phase 3.7 Credit File Workbench
 

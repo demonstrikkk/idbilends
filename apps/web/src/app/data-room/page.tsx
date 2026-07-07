@@ -12,7 +12,7 @@ import { formatInr, titleize } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 export default function DataRoomPage() {
-  const casesQuery = useQuery({ queryKey: ["portfolio", "cases"], queryFn: getPortfolioCases, staleTime: 60_000 });
+  const casesQuery = useQuery({ queryKey: ["portfolio", "cases"], queryFn: () => getPortfolioCases(), staleTime: 60_000 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const activeId = selectedId ?? casesQuery.data?.items[0]?.item.id ?? "";
   const fileQuery = useQuery({ queryKey: ["credit-file", activeId], queryFn: () => getCreditFile(activeId), enabled: Boolean(activeId), staleTime: 60_000 });

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from app.schemas.portfolio import (
     AlertsResponse,
@@ -25,8 +25,19 @@ model_monitor_router = APIRouter(prefix="/model-monitor", tags=["model-monitor"]
 
 
 @portfolio_router.get("/cases", response_model=PortfolioCasesResponse)
-def portfolio_cases() -> PortfolioCasesResponse:
-    return get_portfolio_cases()
+def portfolio_cases(
+    limit: int = Query(default=100, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    sort: str = "prospect_score_desc",
+    risk_tier: str | None = None,
+    segment: str | None = None,
+    query: str | None = None,
+    city: str | None = None,
+    zone: str | None = None,
+    branch: str | None = None,
+    scenario: str | None = None,
+) -> PortfolioCasesResponse:
+    return get_portfolio_cases(limit=limit, offset=offset, sort=sort, risk_tier=risk_tier, segment=segment, query=query, city=city, zone=zone, branch=branch, scenario=scenario)
 
 
 @portfolio_router.get("/summary", response_model=PortfolioSummaryResponse)
