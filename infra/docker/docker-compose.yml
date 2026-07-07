@@ -26,18 +26,3 @@ services:
       - "3000:3000"
     depends_on:
       - api
-
-  # Future-ready only. The default demo uses the in-memory DemoStore.
-  # postgres:
-  #   image: postgres:16
-  #   environment:
-  #     POSTGRES_USER: lendsignal
-  #     POSTGRES_PASSWORD: lendsignal
-  #     POSTGRES_DB: lendsignal
-  #   ports:
-  #     - "5432:5432"
-  #
-  # redis:
-  #   image: redis:7
-  #   ports:
-  #     - "6379:6379"

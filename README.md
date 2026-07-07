@@ -1,68 +1,71 @@
 # LendSignal 360
 
-AI-powered MSME credit intelligence platform for prospect discovery, alternative-data financial health scoring, explainable credit decisioning, and controlled agentic lending assistance.
+LendSignal 360 is a banker-facing MSME credit intelligence workbench for synthetic-demo credit appraisal, explainable scoring, Prospect Assist, and controlled Credit Copilot support.
 
-## What this is
+One-line pitch: turn scattered MSME financial and document signals into an evidence-backed credit file for human lending review.
 
-LendSignal 360 is a bank-grade decision-support system for MSME lending. It helps lending teams answer:
+## Safety Boundary
 
-- Which MSMEs are promising prospects?
-- What is their financial health?
-- How much credit may be safe to consider?
-- Why did the system produce this score?
-- What documents or signals are missing?
-- What should a bank officer review next?
+This project is decision-support software. It does not provide final automated loan approval or final rejection. The deterministic score engine is the source of truth for score, risk tier, confidence, suggested range, factors, and missing-data warnings. Credit Copilot explains, summarizes, investigates, and recommends human review actions from sanitized internal inputs.
 
-## What this is not
-
-This is not an automated final loan approval engine. It is decision-support software. Final credit decisions require human review, bank policy, compliance checks, and verified data.
-
-## Repo structure
+## Architecture
 
 ```txt
-apps/
-  web/       Next.js frontend
-  api/       FastAPI backend
-  worker/    optional async/AI worker
-packages/
-  shared/    shared schemas/types
-  ui/        shared UI package if needed
-  config/    shared config
-docs/        architecture, API, product, roadmap
-prompts/     Codex task prompts
-infra/       docker, CI, deployment notes
-datasets/    synthetic/demo datasets only
-tests/       cross-service tests
+Next.js Web App
+  -> typed API client and Zod validation
+  -> Case Inbox, Credit File, Data Room, Evidence Map, Copilot, Governance
+
+FastAPI Backend
+  -> synthetic DemoStore
+  -> deterministic scoring service
+  -> Prospect Assist and risk services
+  -> controlled Credit Copilot graph and provider adapters
+  -> audit events, health, readiness
+
+Future production layer
+  -> PostgreSQL, Redis, auth/RBAC, observability, real consented adapters
 ```
 
-## Start with Codex
+## Demo Flow
 
-1. Paste the exported deep-research document into `docs/RESEARCH_BLUEPRINT.md`.
-2. Give Codex `prompts/00_MASTER_CODEX_PROMPT.md`.
-3. Then run the phase prompts in order:
-   - `prompts/01_PHASE_0_PLANNING.md`
-   - `prompts/02_PHASE_1_BACKEND.md`
-   - `prompts/03_PHASE_2_FRONTEND.md`
-   - `prompts/04_PHASE_3_AGENTIC_AI.md`
-   - `prompts/05_PHASE_4_PRODUCTION_HARDENING.md`
+1. Open `/case-inbox` to identify files needing action.
+2. Open a Credit File at `/msmes/{id}` to inspect borrower readiness.
+3. Use `/data-room` to review organized records and missing evidence.
+4. Use `/evidence-map` to trace source data to score signals and human actions.
+5. Ask Credit Copilot why a case is blocked and verify cited internal inputs.
+6. Show audit trail and close with the decision-support boundary.
 
-## MVP target
+See [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) for the 4-minute script.
 
-A working local MVP where:
+## Features
+
+- Synthetic MSME demo data only.
+- Deterministic Financial Health Score.
+- Risk tier, data confidence, suggested range, positive and negative factors.
+- Prospect Assist priority, likely credit need, product fit, and next best action.
+- Case Inbox and Credit File workbench.
+- Data Room and Evidence Map.
+- Credit Copilot with mock, Groq, and disabled provider modes.
+- Provider status, trace metadata, and audit events.
+- Docker Compose packaging and GitHub Actions CI.
+
+## Current Status
+
+Demo-ready for local review. Not production-ready. Known gaps include authentication, persistent storage, rate limiting, real financial integrations, durable audit retention, and production observability.
+
+## Quickstart Without Docker
+
+Backend:
 
 ```bash
-docker compose up --build
+cd apps/api
+python -m venv .venv
+pip install -r requirements.txt
+python -m pytest
+uvicorn app.main:app --reload
 ```
 
-runs:
-- frontend dashboard
-- backend API docs
-- seeded synthetic MSME profiles
-- financial health scoring endpoint
-- one complete MSME profile detail page
-- Credit Copilot AI lending brief in mock mode
-
-## Frontend
+Frontend:
 
 ```bash
 cd apps/web
@@ -73,18 +76,43 @@ npm run typecheck
 npm run build
 ```
 
-By default the Phase 2 frontend reads the FastAPI backend from `http://localhost:8000`. Override with `NEXT_PUBLIC_API_BASE_URL` if the API runs elsewhere.
+Open:
 
-Phase 2.5 expands the frontend into a backend-backed credit operating cockpit:
+- Frontend: `http://localhost:3000`
+- Backend docs: `http://localhost:8000/docs`
+- Health: `http://localhost:8000/health`
 
-- Overview, Credit Review, Watchlist, Alerts, Portfolio, Data Insights, Model Monitor, Reports, Policy Center, Data Dictionary, and Audit Trail routes.
-- All visible credit records, score values, risk tiers, confidence values, suggested ranges, warnings, prospect actions, and audit rows come from implemented backend routes or are derived from their responses.
-- Backend-limited areas are labelled honestly: report history needs a report service, policy tables need a policy database, and historical model monitoring needs persistent score history.
-- Phase 3 adds a controlled Credit Copilot workflow with mock-by-default provider mode, optional Groq integration, sanitized context packs, audited trace, and SSE streaming.
+## Quickstart With Docker
 
-## Credit Copilot Provider Modes
+From the repository root:
 
-Mock mode works locally without keys:
+```bash
+docker compose up --build
+```
+
+Default ports:
+
+- API: `http://localhost:8000`
+- Web: `http://localhost:3000`
+
+The default demo uses in-memory storage. PostgreSQL and Redis are not required.
+
+## Environment Setup
+
+Copy `.env.example` to `.env` for local development. Do not commit `.env`.
+
+Important variables:
+
+- `APP_ENV=development`
+- `CORS_ORIGINS=http://localhost:3000`
+- `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`
+- `AI_PROVIDER=mock`
+- `GROQ_API_KEY=` only when using Groq mode
+- `COPILOT_STREAMING_ENABLED=true`
+
+## AI Provider Modes
+
+Mock mode works without keys:
 
 ```bash
 AI_PROVIDER=mock
@@ -97,49 +125,93 @@ AI_PROVIDER=groq
 GROQ_API_KEY=
 ```
 
-Streaming uses Server-Sent Events from `GET /copilot/{msme_id}/brief/stream`. The final SSE event contains the validated Copilot brief object. Raw statement rows, real personal identifiers, secrets, and logs are not sent to model providers. The provider adapter can be replaced later with a private or fine-tuned open-source model.
+Disabled mode leaves deterministic scoring available and returns safe Copilot unavailable responses:
 
-Provider status is visible at:
+```bash
+AI_PROVIDER=disabled
+```
+
+Verify active provider state:
 
 ```bash
 GET /copilot/provider/status
 ```
 
-On Windows PowerShell, use `Invoke-RestMethod` for JSON requests:
+## API Routes
 
-```powershell
-$body = @{
-  mode = "groq"
-  include_trace = $true
-  regenerate = $true
-} | ConvertTo-Json
-
-Invoke-RestMethod `
-  -Uri "http://127.0.0.1:8000/copilot/msme_001/brief" `
-  -Method Post `
-  -ContentType "application/json" `
-  -Body $body
-```
-
-Use `curl.exe`, not the PowerShell `curl` alias, for streaming:
-
-```powershell
-curl.exe -N "http://127.0.0.1:8000/copilot/msme_001/brief/stream?mode=mock"
-```
-
-Verify `provider` and `model` in the brief response or final SSE event. If Groq is selected without `GROQ_API_KEY`, the UI and API report provider unavailability while deterministic scoring remains available.
-
-## Frontend Aggregation Endpoints
-
-Phase 3.6 adds backend-derived read endpoints to reduce frontend fan-out:
-
+- `GET /health`
+- `GET /ready`
+- `POST /demo/seed`
+- `GET /msmes`
+- `GET /msmes/{msme_id}`
+- `POST /scores/{msme_id}/generate`
+- `GET /prospects/{msme_id}/signals`
 - `GET /portfolio/cases`
 - `GET /portfolio/summary`
-- `GET /watchlist`
-- `GET /alerts`
-- `GET /insights/portfolio`
-- `GET /model-monitor/snapshot`
+- `GET /case-inbox`
+- `GET /credit-file/{msme_id}`
+- `GET /credit-file/{msme_id}/evidence-map`
+- `POST /copilot/{msme_id}/brief`
+- `GET /copilot/{msme_id}/brief/stream`
+- `POST /copilot/{msme_id}/chat`
+- `GET /audit/{msme_id}`
 
-These endpoints derive current snapshots from seeded synthetic profiles, deterministic scores, Prospect Assist, risk triggers, document warnings, and documented metadata. They do not fabricate historical model, policy, report, or alert records.
+## Frontend Routes
 
-See `docs/UI_BACKEND_INTEGRITY_AUDIT.md` for page-by-page data provenance.
+- `/case-inbox`
+- `/msmes`
+- `/msmes/{id}`
+- `/data-room`
+- `/evidence-map`
+- `/copilot`
+- `/portfolio`
+- `/governance`
+- `/watchlist`
+- `/alerts`
+- `/reports`
+- `/policy-center`
+- `/data-dictionary`
+
+## Test Commands
+
+Backend:
+
+```bash
+cd apps/api
+python -m pytest
+```
+
+Frontend:
+
+```bash
+cd apps/web
+npm run lint
+npm run typecheck
+npm run build
+```
+
+## Known Limitations
+
+- Synthetic data only.
+- No real IDBI or private customer data.
+- In-memory storage by default.
+- No production auth/RBAC yet.
+- No live AA, GST, Udyam, GeM, ULI, bureau, or core-banking integrations.
+- No final lending approval or final rejection.
+- Rate limiting and durable audit retention are future production work.
+
+See [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md).
+
+## Docs Index
+
+- [Deployment](docs/DEPLOYMENT.md)
+- [Production Checklist](docs/PRODUCTION_CHECKLIST.md)
+- [Known Limitations](docs/KNOWN_LIMITATIONS.md)
+- [Demo Script](docs/DEMO_SCRIPT.md)
+- [Pitch Notes](docs/PITCH_NOTES.md)
+- [Judge Q&A](docs/JUDGE_QA.md)
+- [Future Roadmap](docs/FUTURE_ROADMAP.md)
+- [API Contracts](docs/API_CONTRACTS.md)
+- [Security Checklist](docs/SECURITY_CHECKLIST.md)
+- [Credit File Workflow](docs/CREDIT_FILE_WORKFLOW.md)
+- [UI Backend Integrity Audit](docs/UI_BACKEND_INTEGRITY_AUDIT.md)

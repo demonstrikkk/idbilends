@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+.codex-server-pids.txt
+*.pid
 
 # Python
 __pycache__/
