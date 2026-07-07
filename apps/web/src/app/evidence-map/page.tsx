@@ -20,7 +20,7 @@ export default function EvidenceMapPage() {
   const activeCase = cases.find((item) => item.item.id === activeId);
 
   return (
-    <AppShell title="Evidence Room: Traceability Map" subtitle="Source data to derived signal to score component to lending question to human action.">
+    <AppShell title="Evidence Map" subtitle="Source data to derived signal to score component to lending question to human action.">
       {casesQuery.isLoading ? <LoadingState label="Loading evidence map cases..." /> : casesQuery.isError ? (
         <ErrorState label="Unable to load cases for evidence mapping." />
       ) : !cases.length ? (
@@ -79,7 +79,7 @@ function MapContent({ data, activeCase }: { data: any, activeCase: any }) {
         <div>
           <h2 className="font-serif text-lg font-semibold text-ink">{activeCase?.item.business_name ?? "Credit File"} / Traceability Map</h2>
           <div className="mt-1 text-xs text-muted">
-            End-to-end evidence chain for underwriting decisions.
+            End-to-end evidence chain for underwriting review.
           </div>
         </div>
         <Link href={`/msmes/${data.msme_id}`} className="flex items-center gap-2 rounded bg-white px-3 py-1.5 text-xs font-semibold text-ink shadow-sm border border-line hover:bg-subtle transition-colors">
@@ -130,7 +130,7 @@ function MapContent({ data, activeCase }: { data: any, activeCase: any }) {
                 <div className="text-[10px] font-bold uppercase tracking-wider text-amber mb-2">5. Human Action</div>
                 <div className="text-sm font-medium text-amber">{row.recommended_action}</div>
                 <div className="text-[10px] font-medium uppercase tracking-wider text-muted mt-2 border-t border-line pt-2">Impact</div>
-                <div className="text-xs text-muted">{row.confidence_impact} • {row.risk_impact}</div>
+                <div className="text-xs text-muted">{row.confidence_impact} / {row.risk_impact}</div>
               </div>
             </div>
           </div>

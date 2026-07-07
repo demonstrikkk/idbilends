@@ -34,7 +34,7 @@ export function SignalTable({ cases, title = "Cases" }: { cases: PortfolioCase[]
               <th className="border-b border-line px-4 py-3 font-semibold">Requested</th>
               <th className="border-b border-line px-4 py-3 font-semibold">Suggested Range</th>
               <th className="border-b border-line px-4 py-3 font-semibold">Recommendation</th>
-              <th className="border-b border-line px-4 py-3 font-semibold">Next Best Action</th>
+              <th className="border-b border-line px-4 py-3 font-semibold">Recommended Human Action</th>
             </tr>
           </thead>
           <tbody>
@@ -96,7 +96,7 @@ export function FactorBarList({ factors }: { factors: { label: string; value: nu
 }
 
 export function DocumentGapStrip({ warnings }: { warnings: string[] }) {
-  if (!warnings.length) return <div className="text-sm text-muted">No missing-data warnings returned by the backend score service.</div>;
+  if (!warnings.length) return <div className="text-sm text-muted">No missing-evidence warnings returned by the backend score service.</div>;
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       {warnings.map((warning) => (

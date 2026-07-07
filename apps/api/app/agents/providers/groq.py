@@ -44,8 +44,11 @@ class GroqCopilotProvider(BaseCopilotProvider):
         )
         mock = await MockCopilotProvider().generate_structured_brief(context)
         prompt = (
-            "Return only JSON matching the provided schema. Do not calculate or alter score, risk tier, suggested range, or cited inputs. "
-            "Avoid final lending decision language. Use only this sanitized context and baseline schema.\n\n"
+            "Return only JSON matching the provided schema. Use concise bank-officer language. "
+            "Do not calculate or alter score, risk tier, confidence, suggested range, recommended human action, or cited inputs. "
+            "Use only this sanitized context and baseline schema. Do not invent facts, metrics, documents, policies, or external data. "
+            "Every narrative field must preserve the decision-support-only boundary and must distinguish deterministic score outputs from Copilot explanation. "
+            "Avoid final lending authority language.\n\n"
             f"Sanitized context:\n{json.dumps(context.model_dump(mode='json'), indent=2)}\n\n"
             f"Baseline fields:\n{json.dumps(mock.model_dump(mode='json'), indent=2)}"
         )
@@ -102,7 +105,9 @@ class GroqCopilotProvider(BaseCopilotProvider):
         )
         prompt = (
             "Stream a concise lending brief narrative from sanitized context only. "
-            "Do not calculate or alter deterministic score outputs. Do not use forbidden lending authority language.\n\n"
+            "Cite the internal inputs by name where useful. Do not calculate or alter deterministic score outputs. "
+            "Do not invent facts, metrics, documents, policies, or external data. "
+            "State that this is decision-support for human review and do not use final lending authority language.\n\n"
             f"{json.dumps(context.model_dump(mode='json'), indent=2)}"
         )
         async for chunk in llm.astream(

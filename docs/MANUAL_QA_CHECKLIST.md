@@ -1,13 +1,13 @@
 # Manual QA Checklist
 
-Phase: 3.7 Product Realignment + Banker Workbench Rebuild
+Phase: 5 Final Demo Polish + Judge-Ready Experience
 
 ## Core Workflow
 
 - Open `/case-inbox`; confirm lanes are Ready for Review, Missing Evidence, Risk Attention, High Potential Prospect, and Low Confidence.
 - Click a case card; confirm `/msmes/{id}` opens the Credit File workbench.
-- In Credit File, switch sections: Identity, Financial Records, Documents, Derived Signals, Credit Posture, Copilot, Audit.
-- Confirm right inspector shows score, confidence, current blocker, next best action, and decision-support disclaimer.
+- In Credit File, switch sections: Identity, Financial Records, Evidence Records, Derived Signals, Credit Posture, Copilot, Audit.
+- Confirm right inspector shows score, confidence, current blocker, recommended human action, and decision-support disclaimer.
 
 ## Data Room
 
@@ -29,7 +29,7 @@ Phase: 3.7 Product Realignment + Banker Workbench Rebuild
 - Select a case.
 - Use predefined prompts and free-text chat.
 - Confirm responses include provider/model, cited internal inputs, and trace.
-- Generate brief and stream brief from the case detail page.
+- Generate a decision-support brief and stream a brief from the case detail page.
 - Confirm score, risk tier, confidence, and suggested range do not change after Copilot activity.
 
 ## Provider Modes

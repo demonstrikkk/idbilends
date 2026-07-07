@@ -19,10 +19,9 @@ type Props = {
 
 const bankerPrompts = [
   "Why is this case blocked?",
-  "What documents should I request next?",
+  "What evidence should I request next?",
   "Explain the score to a branch manager.",
-  "Which risk signal matters most?",
-  "Compare financial health and data confidence.",
+  "Which signal affects confidence most?",
   "Draft an RM follow-up note.",
   "What should be verified before human review?"
 ];
@@ -229,7 +228,7 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
             <input
               value={chatInput}
               onChange={(event) => setChatInput(event.target.value)}
-              placeholder="Ask about evidence gaps, risk signals, or next action…"
+              placeholder="Ask about evidence gaps, risk signals, or human review action..."
               className="h-10 min-w-0 flex-1 rounded-md border border-line bg-white px-3 text-sm outline-none placeholder:text-muted focus:border-navy transition-colors"
             />
             <button
@@ -253,7 +252,7 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
             className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-line bg-surface px-3 text-sm font-semibold transition-colors hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-60"
           >
             {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-            Generate Brief
+            Generate decision-support brief
           </button>
           <button
             type="button"
@@ -262,7 +261,7 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
             className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-line bg-surface px-3 text-sm font-semibold transition-colors hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isStreaming ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
-            {isStreaming ? "Stop Stream" : "Stream Brief"}
+            {isStreaming ? "Stop stream" : "Stream decision-support brief"}
           </button>
         </div>
 
@@ -278,7 +277,7 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
         ) : null}
 
         {brief ? <BriefView brief={brief} /> : (
-          <p className="text-xs leading-5 text-muted">Generate or stream a grounded lending brief from backend score, prospect, risk, document, and transaction-summary inputs.</p>
+          <p className="text-xs leading-5 text-muted">Generate or stream a grounded decision-support brief from backend score, prospect, risk, evidence, and transaction-summary inputs.</p>
         )}
       </div>
     </div>
@@ -293,7 +292,7 @@ function BriefView({ brief }: { brief: CopilotBrief }) {
         <p className="leading-6 text-ink">{brief.summary}</p>
       </div>
       <div className="rounded-md border border-navy/20 bg-navy/5 p-4">
-        <div className="text-xs font-bold uppercase tracking-wider text-navy mb-2">Final Lending Brief</div>
+        <div className="text-xs font-bold uppercase tracking-wider text-navy mb-2">Decision-Support Lending Brief</div>
         <p className="leading-6 text-ink">{brief.final_lending_brief}</p>
       </div>
       <BriefSection title="Data Quality Observations" body={brief.data_quality_observations} />

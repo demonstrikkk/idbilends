@@ -29,11 +29,12 @@ Future production layer
 ## Demo Flow
 
 1. Open `/case-inbox` to identify files needing action.
-2. Open a Credit File at `/msmes/{id}` to inspect borrower readiness.
-3. Use `/data-room` to review organized records and missing evidence.
-4. Use `/evidence-map` to trace source data to score signals and human actions.
-5. Ask Credit Copilot why a case is blocked and verify cited internal inputs.
-6. Show audit trail and close with the decision-support boundary.
+2. Open `msme_005` Pragati Design Services from a Missing Evidence lane.
+3. Use the Credit File at `/msmes/{id}` to inspect readiness, blocker, score, confidence, and recommended human action.
+4. Use `/data-room` to review organized evidence records and missing evidence.
+5. Use `/evidence-map` to trace source data to score signals and human actions.
+6. Ask Credit Copilot: "Why is this case blocked?"
+7. Show audit trail and close with the decision-support boundary.
 
 See [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) for the 4-minute script.
 
@@ -42,7 +43,7 @@ See [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) for the 4-minute script.
 - Synthetic MSME demo data only.
 - Deterministic Financial Health Score.
 - Risk tier, data confidence, suggested range, positive and negative factors.
-- Prospect Assist priority, likely credit need, product fit, and next best action.
+- Prospect Assist priority, likely credit need, product fit, and recommended human action.
 - Case Inbox and Credit File workbench.
 - Data Room and Evidence Map.
 - Credit Copilot with mock, Groq, and disabled provider modes.

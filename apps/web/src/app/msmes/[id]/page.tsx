@@ -18,10 +18,10 @@ import { cn } from "@/lib/utils";
 const sections = [
   { id: "identity", label: "Business Identity" },
   { id: "financials", label: "Financial Records" },
-  { id: "documents", label: "Evidence & Documents" },
+  { id: "documents", label: "Evidence Records" },
   { id: "signals", label: "Derived Signals" },
   { id: "posture", label: "Credit Posture" },
-  { id: "copilot", label: "AI Copilot" },
+  { id: "copilot", label: "Credit Copilot" },
   { id: "audit", label: "Audit Trail" }
 ];
 
@@ -80,7 +80,7 @@ export default function CreditFilePage() {
             </section>
             
             <section id="documents" className="scroll-mt-24 space-y-4">
-              <SectionTitle>Evidence & Documents</SectionTitle>
+              <SectionTitle>Evidence Records</SectionTitle>
               <DocumentsSection file={file} />
             </section>
             
@@ -95,7 +95,7 @@ export default function CreditFilePage() {
             </section>
 
             <section id="copilot" className="scroll-mt-24 space-y-4">
-              <SectionTitle>AI Copilot Assistant</SectionTitle>
+              <SectionTitle>Credit Copilot Assistant</SectionTitle>
               <div className="rounded-md border border-line bg-surface shadow-cockpit">
                 <CreditCopilotPanel msmeId={file.profile.id} />
               </div>
@@ -315,13 +315,13 @@ function ReviewRail({ file, onAskCopilot }: { file: CreditFile; onAskCopilot: ()
   return (
     <aside className="sticky top-24 h-fit space-y-5 rounded-md border border-line bg-surface p-5 shadow-cockpit">
       <div className="border-b border-line pb-4">
-        <div className="text-xs font-bold uppercase tracking-wider text-muted">Final Decision Summary</div>
+        <div className="text-xs font-bold uppercase tracking-wider text-muted">Human Review Summary</div>
         <div className="mt-4 text-5xl font-bold text-ink">{file.score.score}<span className="text-xl font-normal text-muted">/100</span></div>
         <div className="mt-4 flex flex-wrap gap-2"><RiskTierPill tier={file.score.risk_tier} /><DataConfidencePill value={file.score.data_confidence} /></div>
       </div>
       
       <div>
-        <div className="text-xs font-bold uppercase tracking-wider text-muted">Next Best Action</div>
+        <div className="text-xs font-bold uppercase tracking-wider text-muted">Recommended Human Action</div>
         <p className="mt-2 rounded-md bg-amber/10 p-3 text-sm font-medium text-amber">{file.prospect.next_best_action}</p>
       </div>
 
@@ -344,10 +344,10 @@ function ReviewRail({ file, onAskCopilot }: { file: CreditFile; onAskCopilot: ()
 
       <div className="pt-2">
         <button type="button" onClick={onAskCopilot} className="flex h-11 w-full items-center justify-center rounded-md bg-navy text-sm font-medium text-white transition-colors hover:bg-ink shadow-sm">
-          Ask AI Copilot
+          Ask Credit Copilot
         </button>
         <p className="mt-3 text-[11px] leading-relaxed text-muted">
-          AI Copilot is for investigation and drafting only. It cannot approve or reject loans. Final authority remains with the credit officer.
+          Credit Copilot is for investigation and drafting only. It cannot issue a final credit decision; authority remains with the credit officer.
         </p>
       </div>
     </aside>

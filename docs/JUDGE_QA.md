@@ -1,45 +1,44 @@
 # Judge Q&A
 
-## Is this approving loans automatically?
+## Is this making loan decisions?
 
-No. LendSignal 360 is decision-support software. It presents deterministic scores, evidence gaps, risk factors, and suggested human review actions. Final lending decisions require bank policy, verified documents, and authorized human approval.
+No. It is decision-support software. It organizes evidence, deterministic score outputs, risk factors, and recommended human actions. Final lending authority stays with authorized bank officers and bank policy.
 
-## Why would a bank trust the AI?
+## Why does Copilot not hallucinate?
 
-The AI layer does not own scoring. It receives sanitized internal context, cites internal inputs, shows assumptions and confidence, and leaves the deterministic score unchanged. The trace and audit trail make generation behavior reviewable.
+Copilot receives a sanitized backend context pack, must cite internal inputs, shows assumptions and confidence, and cannot alter score outputs. If a fact is missing, it should surface the evidence gap rather than fill it in.
 
-## What data is used?
+## What data is real vs synthetic?
 
-Only synthetic MSME profiles, synthetic financial signals, synthetic document statuses, and derived demo records are used in this repository.
+All borrower profiles, financial signals, evidence statuses, risk signals, and audit events in this repository are synthetic demo data. No real IDBI, customer, bureau, GST, Udyam, GeM, or Account Aggregator data is included.
 
-## What happens with real IDBI data?
+## How would this connect to IDBI records?
 
-Real data would require consent, authentication, authorization, encryption, audit retention, data minimization, and production integrations. The current architecture is prepared for adapters, but this demo does not include real IDBI data.
+Production integration would add authenticated adapters for consented account data, core-banking records, document systems, bureau services, GST-like records, Udyam, GeM, and future ULI journeys. The current MVP models those boundaries without adding live integrations.
 
-## Why not just a dashboard?
+## Why not just use ChatGPT?
 
-Dashboards show metrics. This product organizes a credit file: evidence, missing records, score components, lending questions, next human action, Copilot explanation, and audit context in one workflow.
+A general chatbot does not own a credit-file workflow, deterministic score trace, evidence map, provider status, audit events, or bank-safe tool boundaries. LendSignal 360 grounds AI in internal backend outputs and keeps numerical credit outputs outside the LLM.
 
-## Why Groq or an external LLM?
+## Can it run with private or open-source models?
 
-Groq is optional for fast demo inference. The provider is behind a backend adapter, and mock mode is default. The same interface can be replaced by a private model or OpenAI-compatible endpoint.
+Yes. The provider is behind a backend adapter. Groq is optional, mock mode works without keys, and a private OpenAI-compatible or open-source model can replace the provider if it returns the validated schema and follows the same safety contract.
 
-## Can this run with a private model?
+## What is production-ready vs future work?
 
-Yes. The Copilot provider layer can be swapped as long as the replacement returns the validated schema and follows the same safety constraints.
+Demo-ready: local web/API app, synthetic data, deterministic scoring, Prospect Assist, Credit File, Data Room, Evidence Map, Credit Copilot provider modes, audit events, tests, Docker files, and CI.
 
-## How is hallucination controlled?
+Future production work: authentication, RBAC, PostgreSQL persistence, durable audit retention, rate limiting, real integrations, observability, document upload/parsing, security hardening, and deployment controls.
 
-Copilot receives a constrained context pack, must cite internal inputs, must disclose assumptions, and cannot invent metrics or mutate scores. The deterministic services remain the source of truth.
+## What is the business impact?
 
-## What is deterministic vs AI-generated?
+The product can reduce preparation time for MSME review, improve evidence discipline, make score reasoning easier to explain, help relationship managers request the right records, and give risk teams a clearer trace from source data to human action.
 
-Deterministic: score, risk tier, confidence, suggested range, score factors, missing-data warnings, Prospect Assist outputs, and evidence maps. AI-generated: summaries, lending briefs, explanations, follow-up questions, and case Q&A.
+## Which flagship cases are in the demo data?
 
-## What is production-ready vs demo?
-
-Demo-ready: local app, deterministic scoring, synthetic data, Credit File workflow, Copilot provider modes, audit events, tests, Docker packaging, CI, and documentation. Production gaps: auth, persistence, rate limiting, real integrations, observability, and formal deployment controls.
-
-## How does this align with MSME lending?
-
-It focuses on borrower readiness, working-capital need, document completeness, cashflow behavior, repayment stress, buyer concentration, and risk anomalies, which are practical signals for MSME credit review.
+- `msme_001` Aarav Precision Tools: healthy growth manufacturer with an ITR gap.
+- `msme_005` Pragati Design Services: missing ITR and bureau evidence gap.
+- `msme_006` Kaveri Trading Co: buyer concentration and collection-delay case.
+- `msme_007` Annapurna Foods: seasonal volatility case.
+- `msme_008` Metro Fabrication Works: debt stress case.
+- `msme_009` Nova Wholesale Links: suspicious revenue spike case.

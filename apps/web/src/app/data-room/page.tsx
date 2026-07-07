@@ -20,7 +20,7 @@ export default function DataRoomPage() {
   const activeCase = cases.find((item) => item.item.id === activeId);
 
   return (
-    <AppShell title="Evidence Room: Data Vault" subtitle="Organized borrower records and source verification status for the selected credit file.">
+    <AppShell title="Data Room" subtitle="Organized borrower evidence records and source verification status for the selected credit file.">
       {casesQuery.isLoading ? <LoadingState label="Loading evidence repository..." /> : casesQuery.isError ? (
         <ErrorState label="Unable to load portfolio cases for the data room." />
       ) : !cases.length ? (
@@ -83,7 +83,7 @@ function VaultContent({ data, activeCase }: { data: any, activeCase: any }) {
           <h2 className="font-serif text-lg font-semibold text-ink">{data.profile.business_name} / Evidence Vault</h2>
           <div className="mt-1 text-xs text-muted">
             Requested: <span className="font-medium text-ink">{formatInr(data.profile.requested_credit_amount)}</span>
-            <span className="mx-2">•</span>
+            <span className="mx-2">/</span>
             Readiness Score: <span className="font-medium text-ink">{activeCase?.score.score ?? data.score.score}</span>
           </div>
         </div>

@@ -3,7 +3,7 @@
 LendSignal 360 is a demo-grade MSME credit intelligence workbench.
 
 - Uses synthetic data only.
-- Contains no real IDBI, private bank, customer, bureau, GST, Udyam, GeM, or Account Aggregator data.
+- Contains no real IDBI, private bank, customer, bureau, GST, Udyam, GeM, ULI, or Account Aggregator data.
 - Uses in-memory storage by default, so data resets when the backend restarts.
 - Has no production authentication or role-based authorization yet.
 - Does not issue final lending approval or final rejection.
@@ -14,4 +14,7 @@ LendSignal 360 is a demo-grade MSME credit intelligence workbench.
 - Model and score history are current snapshots only unless persisted later.
 - Rate limiting is documented but not implemented.
 - Audit events are demo in-memory events until persistence is added.
-- Document parsing and upload workflows are roadmap items, not current production features.
+- Document upload, OCR, parsing, and file retention workflows are roadmap items.
+- Human override is represented as a governance concept, not a persisted workflow yet.
+
+Demo implication: if a judge asks whether the system is production-ready, the correct answer is that the decision-support workflow is demo-ready, while regulated production deployment requires the controls listed in the roadmap.

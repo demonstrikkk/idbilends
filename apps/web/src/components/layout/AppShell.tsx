@@ -36,7 +36,7 @@ const primaryWorkflow = [
     ]
   },
   { href: "/copilot", label: "Credit Copilot", icon: MessageSquareText },
-  { href: "/portfolio", label: "Portfolio Risk", icon: BarChart3 },
+  { href: "/portfolio", label: "Portfolio Signals", icon: BarChart3 },
   { href: "/governance", label: "Governance", icon: ShieldCheck }
 ];
 
@@ -148,7 +148,7 @@ function WorkspaceSidebar({ pathname }: { pathname: string }) {
           <p className="text-white/60">Copilot provides reasoning, not final credit decisions.</p>
         </div>
         
-        <button className="flex w-full items-center gap-3 rounded-md px-2 py-2 transition-colors duration-200 hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber">
+        <div className="flex w-full items-center gap-3 rounded-md px-2 py-2">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-navy text-xs font-medium text-white ring-1 ring-white/20">
             AS
           </div>
@@ -157,7 +157,7 @@ function WorkspaceSidebar({ pathname }: { pathname: string }) {
             <span className="truncate text-xs text-white/50">Credit Officer</span>
           </div>
           <Settings className="ml-auto h-4 w-4 text-white/40" />
-        </button>
+        </div>
       </div>
     </aside>
   );

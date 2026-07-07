@@ -1,18 +1,20 @@
 # Future Roadmap
 
-## Persistence And Workflow
+## Production Foundation
 
 - PostgreSQL-backed repositories.
 - Alembic migrations.
-- Durable audit log.
-- Human override workflow.
-- Case assignment and officer notes.
+- Durable audit log and score history.
+- Environment-specific secrets.
+- CI/CD deployment gates, backups, and restore drills.
 
-## Access Control
+## Access Control And Governance
 
 - Authentication.
-- Role-based access for relationship managers, risk reviewers, and admins.
+- Role-based access for relationship managers, credit reviewers, and admins.
+- Human override workflow with reason capture.
 - Restricted governance and trace views.
+- Rate limits and abuse controls around Copilot and exports.
 
 ## Ecosystem Adapters
 
@@ -20,6 +22,7 @@
 - GST-style filing connector.
 - Udyam verification adapter.
 - GeM seller/order adapter.
+- Bureau and core-banking adapters.
 - Future ULI journey adapter.
 
 ## Document Intelligence
@@ -28,26 +31,19 @@
 - Bank statement and document parsing.
 - Evidence extraction with review states.
 - File storage with retention controls.
+- Document-level audit trail.
 
 ## Scoring And Explainability
 
 - Persisted score history.
-- Model monitoring with real history.
-- XGBoost or similar tabular model after verified data exists.
+- Model monitoring with real production history.
+- Trained tabular model only after verified, consented data exists.
 - SHAP-style explainability for model-backed scores.
 - Calibration and policy overlays.
 
 ## Search And Operations
 
-- Typesense-backed case and borrower search.
-- Redis rate limiting.
+- Search-backed case and borrower lookup.
 - Async jobs for parsing, enrichment, and exports.
-- Observability with tracing, metrics, and error reporting.
-
-## Deployment
-
-- Environment-specific secrets.
-- CI/CD deployment gates.
-- Container build checks.
-- Backups and restore drills.
+- Observability with traces, metrics, logs, and error reporting.
 - Production CORS, HTTPS, and security header review.

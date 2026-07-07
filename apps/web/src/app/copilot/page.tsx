@@ -21,7 +21,7 @@ export default function CopilotPage() {
   const activeId = selectedId ?? cases[0]?.item.id ?? "";
 
   return (
-    <AppShell title="AI Copilot Terminal" subtitle="Case-aware decision-support chat grounded in deterministic score, evidence, risk, and prospect inputs.">
+    <AppShell title="Credit Copilot" subtitle="Case-aware decision-support chat grounded in deterministic score, evidence, risk, and prospect inputs.">
       {casesQuery.isLoading ? <LoadingState label="Loading cases for Copilot..." /> : casesQuery.isError ? (
         <ErrorState label="Unable to load backend cases for Copilot." />
       ) : !cases.length ? (

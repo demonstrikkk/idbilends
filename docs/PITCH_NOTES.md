@@ -1,43 +1,39 @@
 # Pitch Notes
 
-## One-Line Pitch
+## 15-Second Pitch
 
-LendSignal 360 is a banker-facing MSME credit intelligence workbench that turns scattered synthetic financial signals into explainable decision-support for human lending review.
+LendSignal 360 turns scattered synthetic MSME financial and evidence signals into a bank-grade credit file so an IDBI officer can review readiness, risks, gaps, and next human actions with governed AI support.
 
-## Problem
+## 45-Second Pitch
 
-MSME appraisal is slowed by fragmented evidence, incomplete documents, inconsistent transaction signals, and manual interpretation of borrower readiness.
+MSME appraisal is slowed by fragmented evidence, incomplete records, and inconsistent transaction signals. LendSignal 360 organizes those signals into a Credit File with deterministic Financial Health Score, Prospect Assist, Data Room, Evidence Map, Credit Copilot, and audit trail. The score engine owns numerical outputs; Copilot explains and drafts from cited internal inputs only. The result is faster, more traceable human review without pretending to automate final lending authority.
 
-## Solution
+## 2-Minute Pitch
 
-The product creates a structured Credit File with deterministic scoring, Prospect Assist, risk signals, evidence mapping, and a controlled Credit Copilot that explains what a human officer should review next.
+LendSignal 360 is a banker-facing MSME credit intelligence workbench. The Case Inbox tells an officer which credit files need attention. The Credit File brings together profile data, synthetic financial signals, evidence records, score factors, missing evidence, risk warnings, suggested credit posture, and recommended human action. The Data Room shows what evidence exists and what is missing. The Evidence Map traces each source to derived signals, score components, lending questions, and officer actions.
 
-## Why IDBI
+Credit Copilot is deliberately controlled. It can explain why a case is blocked, draft an RM follow-up note, summarize score factors, and generate a lending brief. It cannot alter deterministic scores, invent metrics, call unapproved tools, or issue a final credit decision. Provider modes allow mock, Groq, or disabled operation, and the backend logs audit events.
 
-The workflow aligns with MSME lending, working-capital review, document verification, and future rails such as Account Aggregator, ULI, GST-like signals, Udyam, and GeM-style seller data.
-
-## Why Now
-
-Indian digital credit infrastructure is moving toward consented data sharing and standardized lending journeys. Banks need explainable operating layers that make those signals usable by officers.
-
-## Core Modules
-
-- Case Inbox for files needing action.
-- Credit File workbench for borrower readiness.
-- Financial Health Score from deterministic rules.
-- Prospect Assist for next best action.
-- Data Room and Evidence Map for traceability.
-- Credit Copilot for grounded summaries and lending briefs.
-- Governance views for provider status, audit, and health.
-
-## AI Safety
-
-The score engine owns numerical scoring. Credit Copilot explains, summarizes, investigates, and recommends human actions from sanitized internal inputs. It cannot alter scores or make final lending decisions.
+For IDBI, the value is a practical operating layer for MSME credit teams: better evidence discipline, clearer borrower readiness, faster review preparation, and a credible path to future Account Aggregator, ULI, GST-like, Udyam, GeM, bureau, and core-banking adapters.
 
 ## Differentiation
 
-This is not a generic chatbot or static dashboard. It is a bank-grade credit file workflow with evidence traceability, deterministic scoring, AI governance, auditability, and a clear human decision boundary.
+- Not a generic dashboard: it is a case workflow from inbox to evidence to human review.
+- Not a generic chatbot: Copilot is grounded in backend credit-file context and cited internal inputs.
+- Not a black-box score: deterministic scoring exposes factors, confidence, warnings, and trace.
+- Not fake final automation: the product is decision-support only and keeps the officer in control.
 
-## Future Roadmap
+## Why IDBI Should Care
 
-Add PostgreSQL persistence, auth/RBAC, AA and ecosystem adapters, document parsing, richer explainability, search, Redis rate limiting, observability, and deployment hardening.
+- MSME credit review depends on evidence completeness and repayment signal interpretation.
+- Relationship managers need clear next steps, not only raw metrics.
+- Risk teams need traceability from data source to action.
+- Future digital rails are useful only when translated into officer-ready workflows.
+
+## Why This Is Bank-Safe
+
+- Synthetic demo data only.
+- Deterministic score engine is the source of truth.
+- Copilot is behind provider adapters and an allowlisted backend layer.
+- Outputs include confidence, assumptions, cited internal inputs, and audit events.
+- The app never claims to provide final automated loan approval or final rejection.

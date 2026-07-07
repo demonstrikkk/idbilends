@@ -44,7 +44,7 @@ class MockCopilotProvider(BaseCopilotProvider):
             ),
             prospect_assist_recommendation=(
                 f"Prospect Assist priority is {prospect['priority']} with likely need {prospect['likely_credit_need']} "
-                f"and product fit {prospect['best_product_fit']}. Next action: {prospect['next_best_action']}"
+                f"and product fit {prospect['best_product_fit']}. Recommended human action: {prospect['next_best_action']}"
             ),
             risk_investigator_findings=(
                 f"Primary risk review item: {negative_text}. Early-warning status: {early_text}. "

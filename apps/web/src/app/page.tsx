@@ -20,12 +20,12 @@ export default function HomePage() {
                 A bank-grade cockpit for Financial Health Score, Prospect Readiness, suggested credit posture, verification gaps, risk monitoring, and audit context.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/dashboard" className="inline-flex items-center gap-2 rounded bg-ink px-5 py-3 text-sm font-semibold text-white hover:bg-navy">
-                  Open Overview
+                <Link href="/case-inbox" className="inline-flex items-center gap-2 rounded bg-ink px-5 py-3 text-sm font-semibold text-white hover:bg-navy">
+                  Open Case Inbox
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link href="/msmes" className="inline-flex items-center gap-2 rounded border border-line px-5 py-3 text-sm font-semibold text-ink hover:bg-panel2">
-                  Credit Review
+                  Open Credit Files
                 </Link>
               </div>
             </div>
@@ -33,8 +33,8 @@ export default function HomePage() {
               <div className="text-sm font-semibold">Workflow Boundary</div>
               <div className="mt-4 space-y-4 text-sm leading-6 text-muted">
                 <p>Financial health scoring, risk tiers, confidence, suggested credit range, and reason factors come from backend deterministic services.</p>
-                <p>Prospect Assist signals and next-best-action guidance come from the backend Prospect Assist service.</p>
-                <p>Credit Copilot remains a Phase 3 placeholder in this frontend redesign.</p>
+                <p>Prospect Assist signals and recommended human actions come from the backend Prospect Assist service.</p>
+                <p>Credit Copilot is active through backend provider modes: mock, Groq, or disabled.</p>
               </div>
               <div className="mt-5 rounded border border-amber/25 bg-amber/10 p-3 text-sm leading-6 text-ink">
                 <ShieldCheck className="mr-2 inline h-4 w-4 text-amber" />

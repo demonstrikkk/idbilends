@@ -48,7 +48,7 @@ function InboxWorkspace({ data, selectedId, onSelect }: { data: any, selectedId:
       <div className="flex w-2/3 flex-col rounded-md border border-line bg-surface shadow-cockpit overflow-hidden">
         <div className="border-b border-line bg-subtle px-4 py-3">
           <div className="flex items-center justify-between text-sm font-semibold text-ink">
-            <span>Queue Details</span>
+            <span>Underwriting Queue</span>
             <span className="rounded bg-line px-2 py-0.5 text-xs text-muted">{allCases.length} files</span>
           </div>
         </div>
@@ -82,11 +82,11 @@ function InboxWorkspace({ data, selectedId, onSelect }: { data: any, selectedId:
                           </div>
                           <div className="flex items-center gap-3 text-xs text-muted">
                             <span className="flex items-center gap-1 shrink-0"><MapPin className="h-3 w-3" /> {c.item.city}</span>
-                            <span className="shrink-0">•</span>
+                            <span className="shrink-0">/</span>
                             <span className="truncate">{titleize(c.item.segment)}</span>
                             {blocker && (
                               <>
-                                <span className="shrink-0">•</span>
+                                <span className="shrink-0">/</span>
                                 <span className="truncate text-danger/80">Needs: {blocker}</span>
                               </>
                             )}
@@ -110,7 +110,7 @@ function InboxWorkspace({ data, selectedId, onSelect }: { data: any, selectedId:
       {selectedCase ? (
         <div className="flex w-1/3 flex-col rounded-md border border-line bg-surface shadow-cockpit overflow-hidden">
           <div className="border-b border-line bg-subtle px-5 py-4">
-            <h3 className="text-sm font-semibold text-ink">Quick Preview</h3>
+            <h3 className="text-sm font-semibold text-ink">Credit File Preview</h3>
           </div>
           <div className="flex-1 overflow-y-auto p-6 flex flex-col">
             <div className="mb-6">
@@ -118,7 +118,7 @@ function InboxWorkspace({ data, selectedId, onSelect }: { data: any, selectedId:
               <div className="flex items-center gap-2 text-sm text-muted">
                 <MapPin className="h-3.5 w-3.5" />
                 <span>{selectedCase.item.city}</span>
-                <span>•</span>
+                <span>/</span>
                 <span>{titleize(selectedCase.item.segment)}</span>
               </div>
             </div>
@@ -157,7 +157,7 @@ function InboxWorkspace({ data, selectedId, onSelect }: { data: any, selectedId:
                 <div className="rounded-md bg-subtle p-3 text-sm text-ink flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 mt-0.5 text-amber shrink-0" />
                   <div>
-                    <span className="font-semibold block mb-0.5">Next Recommended Action</span>
+                    <span className="font-semibold block mb-0.5">Recommended Human Action</span>
                     <span className="text-muted">{selectedCase.prospect.next_best_action}</span>
                   </div>
                 </div>

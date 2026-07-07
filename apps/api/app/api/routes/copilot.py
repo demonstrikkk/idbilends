@@ -142,18 +142,31 @@ def _stream_response(msme_id: str, request: Request, mode: str | None) -> Stream
 
 def _chat_answer(question: str, brief: CopilotBriefPayload) -> str:
     lower = question.lower()
-    if "block" in lower or "missing" in lower or "document" in lower:
-        focus = brief.data_quality_observations
-    elif "risk" in lower or "verify" in lower:
-        focus = brief.risk_investigator_findings
-    elif "score" in lower or "branch manager" in lower or "confidence" in lower:
-        focus = brief.credit_analyst_explanation
-    elif "follow" in lower or "rm" in lower or "note" in lower:
-        focus = brief.prospect_assist_recommendation
+    if "rm" in lower or "follow" in lower or "note" in lower:
+        focus = (
+            "RM follow-up note: Please request the open evidence items, verify recent turnover and collection behavior, "
+            "and confirm whether the requested working-capital need matches current order or receivable activity. "
+            f"Use this context: {brief.prospect_assist_recommendation}"
+        )
+    elif "block" in lower or "missing" in lower or "evidence" in lower or "document" in lower:
+        focus = f"Primary blocker and evidence request: {brief.data_quality_observations}"
+    elif "confidence" in lower or "signal" in lower:
+        focus = (
+            f"Confidence driver: {brief.data_quality_observations} "
+            "The confidence view should be read separately from the deterministic score; Copilot is only explaining the returned inputs."
+        )
+    elif "risk" in lower or "verify" in lower or "human review" in lower:
+        focus = f"Pre-review verification: {brief.risk_investigator_findings}"
+    elif "score" in lower or "branch manager" in lower:
+        focus = (
+            f"Branch-manager explanation: {brief.credit_analyst_explanation} "
+            "The score, risk tier, and suggested range are deterministic outputs, not Copilot calculations."
+        )
     else:
         focus = brief.summary
     return (
         f"{focus}\n\n"
+        f"Assumptions: {'; '.join(brief.assumptions[:2])}\n\n"
         f"Recommended human action: {brief.recommended_human_action}\n\n"
-        "Decision-support only: this Copilot answer explains internal score, prospect, risk, and document inputs for human review."
+        "Decision-support only: this Copilot answer explains internal score, prospect, risk, and evidence inputs for human review. It does not issue a final credit decision."
     )
