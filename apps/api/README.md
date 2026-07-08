@@ -14,13 +14,13 @@ The current Phase 1 implementation uses deterministic in-memory local persistenc
 
 ## Credit Copilot
 
-Mock mode is the default and requires no API key:
+User-facing AI requires Groq. Set `AI_PROVIDER=groq` and `GROQ_API_KEY` to enable live streaming.
+If no provider is configured, Credit Copilot returns a clear unavailable state.
+Deterministic score, evidence, and risk views remain available regardless of provider status.
 
-```bash
-AI_PROVIDER=mock
-```
+Mock provider is available only for automated tests/internal development (not user-facing).
 
-Optional Groq mode:
+Groq mode (required for live AI):
 
 ```bash
 AI_PROVIDER=groq
@@ -58,7 +58,7 @@ Invoke-RestMethod `
 Streaming from PowerShell:
 
 ```powershell
-curl.exe -N "http://127.0.0.1:8000/copilot/msme_001/brief/stream?mode=mock"
+curl.exe -N "http://127.0.0.1:8000/copilot/msme_001/brief/stream"
 ```
 
 Check `provider` and `model` in the JSON response or final SSE event to confirm which provider generated the brief.

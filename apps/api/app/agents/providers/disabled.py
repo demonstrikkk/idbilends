@@ -14,6 +14,7 @@ class DisabledCopilotProvider(BaseCopilotProvider):
         return CopilotBriefPayload(
             id=f"brief_{uuid4().hex[:10]}",
             msme_id=context.msme_id,
+            answer_markdown="Credit Copilot is disabled. Deterministic score output remains available for human review.",
             summary="Credit Copilot disabled mode is active; deterministic score output remains available for human review.",
             executive_summary="The AI narrative provider is disabled. Use the deterministic score, risk tier, data confidence, reason codes, and suggested range already shown in the credit case.",
             data_quality_observations="Review the deterministic missing-data warnings and document status before any credit action.",

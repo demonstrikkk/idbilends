@@ -107,10 +107,14 @@ class CreditCopilotGraph:
             ]:
                 state = node(state)
                 yield CopilotStreamEvent(event="node_update", data={"node": name, "status": "success"})
+            accumulated = ""
             async for token in self.provider.stream_brief(context):
-                yield CopilotStreamEvent(event="token", data={"text": token})
+                accumulated += token
+                yield CopilotStreamEvent(event="token", data={"markdown": token})
             state = await lending_brief_node(state, self.provider)
             brief = sanitize_brief_payload(state["final_brief"].model_copy(update={"trace": state["trace"]}))
+            if not brief.answer_markdown and accumulated:
+                brief = brief.model_copy(update={"answer_markdown": accumulated})
             create_audit_event(
                 "copilot_stream_completed",
                 msme_id,
@@ -136,7 +140,7 @@ class CreditCopilotGraph:
             message = "Credit Copilot provider unavailable. Deterministic score remains available."
             if isinstance(exc, HTTPException) and isinstance(exc.detail, dict):
                 message = str(exc.detail.get("message", message))
-            yield CopilotStreamEvent(event="error", data={"message": message})
+            yield CopilotStreamEvent(event="error", data={"message": message, "provider": self.provider.provider_name})
 
     async def _run_nodes(self, state: CopilotState) -> CopilotState:
         try:

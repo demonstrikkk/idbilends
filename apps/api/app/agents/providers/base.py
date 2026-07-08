@@ -22,18 +22,31 @@ class BaseCopilotProvider(ABC):
 
 
 def get_provider(mode: str | None = None) -> BaseCopilotProvider:
+    import os
+
     from app.agents.providers.disabled import DisabledCopilotProvider
     from app.agents.providers.groq import GroqCopilotProvider
     from app.agents.providers.mock import MockCopilotProvider
 
     settings = get_settings()
-    selected = (mode or settings.ai_provider or "mock").lower()
+    selected = (mode or settings.ai_provider or "").lower()
+    in_test = "PYTEST_CURRENT_TEST" in os.environ
     if selected == "disabled":
         return DisabledCopilotProvider()
     if selected == "groq":
         return GroqCopilotProvider()
     if selected == "mock":
-        return MockCopilotProvider()
+        if in_test:
+            return MockCopilotProvider()
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "COPILOT_PROVIDER_FORBIDDEN", "message": "Mock provider is not available for user-facing requests."},
+        )
+    if not selected:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "COPILOT_PROVIDER_UNAVAILABLE", "message": "No AI provider is configured. Set AI_PROVIDER=groq and GROQ_API_KEY to enable Credit Copilot."},
+        )
     raise HTTPException(
         status_code=400,
         detail={"code": "COPILOT_PROVIDER_INVALID", "message": f"Unsupported Credit Copilot provider mode '{selected}'."},

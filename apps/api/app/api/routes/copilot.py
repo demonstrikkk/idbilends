@@ -21,23 +21,30 @@ router = APIRouter(prefix="/copilot", tags=["copilot"])
 @router.get("/provider/status", response_model=CopilotProviderStatus)
 def get_copilot_provider_status() -> CopilotProviderStatus:
     settings = get_settings()
-    configured = (settings.ai_provider or "mock").lower()
+    configured = (settings.ai_provider or "").lower()
     groq_configured = bool(settings.groq_api_key)
-    active = configured
+    user_facing_ai_enabled = (configured == "groq" and groq_configured)
+    available_user_modes: list[str] = []
+    if user_facing_ai_enabled:
+        available_user_modes.append("groq")
+    if configured == "disabled" or not configured:
+        available_user_modes.append("disabled")
+    active_provider = configured if configured in {"groq", "disabled"} else ""
     message: str | None = None
     if configured == "groq" and not groq_configured:
-        active = "groq_unavailable"
-        message = "Groq provider unavailable. Deterministic score remains available."
-    elif configured not in {"mock", "groq", "disabled"}:
-        active = "invalid_provider"
-        message = f"Unsupported Credit Copilot provider mode '{configured}'."
+        active_provider = "groq_unavailable"
+        message = "Groq provider is not configured. Set GROQ_API_KEY to enable Credit Copilot."
+    elif not configured:
+        active_provider = "not_configured"
+        message = "No AI provider is configured. Set AI_PROVIDER=groq and GROQ_API_KEY to enable Credit Copilot."
     return CopilotProviderStatus(
-        configured_provider=configured,
+        configured_provider=configured if configured else "not_configured",
         groq_configured=groq_configured,
-        streaming_enabled=settings.copilot_streaming_enabled,
+        user_facing_ai_enabled=user_facing_ai_enabled,
+        available_user_modes=available_user_modes,
         stream_model=settings.groq_model_stream,
         structured_model=settings.groq_model_structured,
-        active_default_provider=active,
+        active_provider=active_provider,
         message=message,
     )
 

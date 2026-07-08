@@ -14,6 +14,7 @@ export const traceStepSchema = z.object({
 export const copilotBriefSchema = z.object({
   id: z.string(),
   msme_id: z.string(),
+  answer_markdown: z.string(),
   summary: z.string(),
   executive_summary: z.string(),
   data_quality_observations: z.string(),
@@ -37,10 +38,11 @@ export const copilotBriefSchema = z.object({
 export const copilotProviderStatusSchema = z.object({
   configured_provider: z.string(),
   groq_configured: z.boolean(),
-  streaming_enabled: z.boolean(),
+  user_facing_ai_enabled: z.boolean(),
+  available_user_modes: z.array(z.string()),
   stream_model: z.string(),
   structured_model: z.string(),
-  active_default_provider: z.string(),
+  active_provider: z.string(),
   message: z.string().nullable()
 });
 

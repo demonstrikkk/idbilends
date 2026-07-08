@@ -1,15 +1,16 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, BrainCircuit, ExternalLink, FileText, Loader2, Radio, RefreshCw, Send } from "lucide-react";
+import { AlertTriangle, BrainCircuit, ExternalLink, Loader2, Radio, RefreshCw, StopCircle } from "lucide-react";
 import { useRef, useState } from "react";
 import { ApiError } from "@/lib/api/client";
 import { evidenceFileUrl, sendCopilotChat } from "@/lib/api/credit-file";
-import { generateCopilotBrief, getCopilotProviderStatus, copilotStreamUrl } from "@/lib/api/copilot";
+import { getCopilotProviderStatus, copilotStreamUrl } from "@/lib/api/copilot";
 import { copilotBriefSchema, type CopilotBrief, type TraceStep } from "@/lib/schemas/copilot";
 import type { CopilotChatResponse } from "@/lib/schemas/credit-file";
 import { decisionSupportCopy } from "@/lib/constants";
 import { titleize } from "@/lib/formatters";
+import { CopilotMarkdown } from "./CopilotMarkdown";
 
 type Props = {
   msmeId: string;
@@ -17,47 +18,42 @@ type Props = {
   chatEnabled?: boolean;
 };
 
-const bankerPrompts = [
-  "Why is this case blocked?",
-  "What evidence should I request next?",
-  "Explain the score to a branch manager.",
-  "Which signal affects confidence most?",
-  "Draft an RM follow-up note.",
-  "What should be verified before human review?"
-];
+type NodeName = "data_quality_node" | "credit_analyst_node" | "prospect_assist_node" | "risk_investigator_node";
+
+const NODE_LABELS: Record<NodeName, string> = {
+  data_quality_node: "Data Quality",
+  credit_analyst_node: "Credit Analyst",
+  prospect_assist_node: "Prospect Assist",
+  risk_investigator_node: "Risk Investigator",
+};
+
+const NODE_ORDER: NodeName[] = ["data_quality_node", "credit_analyst_node", "prospect_assist_node", "risk_investigator_node"];
 
 export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false }: Props) {
   const [brief, setBrief] = useState<CopilotBrief | null>(null);
   const [messages, setMessages] = useState<Array<{ role: "officer" | "copilot"; text: string; response?: CopilotChatResponse }>>([]);
   const [chatInput, setChatInput] = useState("");
-  const [streamText, setStreamText] = useState("");
+  const [streamMarkdown, setStreamMarkdown] = useState("");
   const [streamError, setStreamError] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [providerMode, setProviderMode] = useState<"configured" | "mock" | "groq" | "disabled">("configured");
+  const [nodeStatuses, setNodeStatuses] = useState<Record<NodeName, "pending" | "running" | "done">>(
+    Object.fromEntries(NODE_ORDER.map((n) => [n, "pending"])) as Record<NodeName, "pending" | "running" | "done">
+  );
   const eventSourceRef = useRef<EventSource | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const providerStatusQuery = useQuery({
     queryKey: ["copilot", "provider-status"],
     queryFn: getCopilotProviderStatus,
     staleTime: 60_000,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
   });
   const providerStatus = providerStatusQuery.data;
-
-  const mutation = useMutation({
-    mutationFn: () => generateCopilotBrief(msmeId),
-    onSuccess: (payload) => {
-      setBrief(payload);
-      setStreamError(null);
-      onAuditRefresh?.();
-    },
-    onError: (error) => {
-      setStreamError(providerMessage(error));
-      onAuditRefresh?.();
-    }
-  });
+  const isAiAvailable = providerStatus?.user_facing_ai_enabled === true;
+  const groqModel = providerStatus?.stream_model ?? providerStatus?.structured_model ?? null;
 
   const chatMutation = useMutation({
-    mutationFn: (message: string) => sendCopilotChat(msmeId, message, providerMode === "configured" ? undefined : providerMode),
+    mutationFn: (message: string) => sendCopilotChat(msmeId, message),
     onSuccess: (payload, message) => {
       setMessages((current) => [...current, { role: "officer", text: message }, { role: "copilot", text: payload.answer, response: payload }]);
       setChatInput("");
@@ -67,7 +63,7 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
     onError: (error) => {
       setStreamError(providerMessage(error));
       onAuditRefresh?.();
-    }
+    },
   });
 
   function ask(message: string) {
@@ -78,41 +74,63 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
 
   function startStreaming() {
     eventSourceRef.current?.close();
-    setStreamText("");
+    setStreamMarkdown("");
     setStreamError(null);
     setIsStreaming(true);
+    setNodeStatuses(
+      Object.fromEntries(NODE_ORDER.map((n) => [n, "pending"])) as Record<NodeName, "pending" | "running" | "done">
+    );
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     const source = new EventSource(copilotStreamUrl(msmeId));
     eventSourceRef.current = source;
-    source.addEventListener("status", (event) => {
-      const payload = parseEvent(event);
-      setStreamText((current) => `${current}${payload.message ?? ""}\n`);
-    });
+
+    source.addEventListener("status", () => {});
+
     source.addEventListener("node_update", (event) => {
       const payload = parseEvent(event);
-      setStreamText((current) => `${current}${titleize(String(payload.node ?? "node"))}: ${payload.status ?? "done"}\n`);
+      const nodeName = String(payload.node ?? "") as NodeName;
+      if (NODE_ORDER.includes(nodeName)) {
+        setNodeStatuses((prev) => ({ ...prev, [nodeName]: "done" }));
+      }
     });
+
     source.addEventListener("token", (event) => {
       const payload = parseEvent(event);
-      setStreamText((current) => `${current}${payload.text ?? ""}`);
+      const md = payload.markdown ?? payload.text ?? "";
+      if (md) {
+        setStreamMarkdown((current) => `${current}${md}`);
+      }
     });
+
     source.addEventListener("final", (event) => {
-      const parsed = copilotBriefSchema.parse(JSON.parse((event as MessageEvent).data));
-      setBrief(parsed);
+      try {
+        const parsed = copilotBriefSchema.parse(JSON.parse((event as MessageEvent).data));
+        setBrief(parsed);
+        if (parsed.answer_markdown) {
+          setStreamMarkdown(parsed.answer_markdown);
+        }
+      } catch {
+        setStreamError("Credit Copilot final response could not be parsed.");
+      }
       setIsStreaming(false);
       source.close();
       onAuditRefresh?.();
     });
+
     source.addEventListener("error", (event) => {
       const data = (event as MessageEvent).data;
       if (data) {
         try {
           const payload = JSON.parse(data) as { message?: string };
-          setStreamError(payload.message ?? "Credit Copilot streaming failed safely.");
+          setStreamError(payload.message ?? "Live Credit Copilot is unavailable. Deterministic score remains available.");
         } catch {
-          setStreamError("Credit Copilot streaming disconnected. Deterministic score remains available.");
+          setStreamError("Live Credit Copilot is unavailable. Deterministic score remains available.");
         }
       } else {
-        setStreamError("Credit Copilot streaming disconnected. Deterministic score remains available.");
+        setStreamError("Live Credit Copilot is unavailable. Deterministic score remains available.");
       }
       setIsStreaming(false);
       source.close();
@@ -121,9 +139,14 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
   }
 
   function stopStreaming() {
+    abortControllerRef.current?.abort();
     eventSourceRef.current?.close();
     setIsStreaming(false);
   }
+
+  const providerLabel = isAiAvailable
+    ? `Live AI: Groq${groqModel ? ` / ${groqModel}` : ""}`
+    : "AI unavailable";
 
   return (
     <div className="flex h-full flex-col">
@@ -135,8 +158,7 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
             Credit Copilot
           </div>
           <p className="mt-1 text-xs text-muted">
-            Provider: <span className="font-medium text-ink">{brief?.provider ?? providerStatus?.active_default_provider ?? "backend"}</span>
-            {" / "}Model: <span className="font-medium text-ink">{brief?.model ?? providerStatus?.structured_model ?? "—"}</span>
+            {providerLabel}
           </p>
         </div>
         {brief ? (
@@ -148,53 +170,23 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
         ) : null}
       </div>
 
-      <div className="flex items-center gap-2 border-b border-line bg-white px-5 py-2 text-xs">
-        <span className="font-semibold text-muted">Mode</span>
-        <select
-          value={providerMode}
-          onChange={(event) => setProviderMode(event.target.value as "configured" | "mock" | "groq" | "disabled")}
-          className="h-8 rounded border border-line bg-surface px-2 text-xs font-medium text-ink outline-none focus:border-navy"
-        >
-          <option value="configured">Backend configured</option>
-          <option value="mock">Mock</option>
-          <option value="groq">Groq</option>
-          <option value="disabled">Disabled</option>
-        </select>
-        <span className="text-muted">Explicit Groq mode returns an error if unavailable.</span>
-      </div>
-
       {/* Decision-support banner */}
       <div className="flex items-center gap-2 border-b border-line bg-navy/5 px-5 py-2 text-xs text-ink/70">
         <AlertTriangle className="h-3.5 w-3.5 text-amber shrink-0" />
         <span><strong>Decision-support only.</strong> Requires human review. Based on available evidence.</span>
       </div>
 
-      {providerStatus?.message ? (
+      {providerStatus?.message && !isAiAvailable ? (
         <div className="mx-5 mt-4 rounded-md border border-amber/30 bg-amber/5 p-3 text-xs">
           <div className="flex items-center gap-2 font-semibold text-amber"><AlertTriangle className="h-3.5 w-3.5" />Provider Notice</div>
           <p className="mt-1 text-muted">{providerStatus.message}</p>
+          <p className="mt-2 text-muted">Deterministic score, evidence, and risk views remain available.</p>
         </div>
       ) : null}
 
       {/* Chat area */}
       {chatEnabled ? (
         <div className="flex flex-1 flex-col gap-3 overflow-hidden p-5">
-          {/* Suggested prompts */}
-          <div className="flex flex-wrap gap-1.5">
-            {bankerPrompts.map((prompt) => (
-              <button
-                key={prompt}
-                type="button"
-                onClick={() => ask(prompt)}
-                disabled={chatMutation.isPending || mutation.isPending || isStreaming}
-                className="rounded-md border border-line bg-surface px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:bg-subtle hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
-
-          {/* Message thread */}
           <div className="flex-1 space-y-3 overflow-y-auto rounded-md border border-line bg-workspace p-4">
             {messages.length ? messages.map((message, index) => (
               <div key={`${message.role}-${index}`} className={message.role === "officer" ? "flex justify-end" : "flex justify-start"}>
@@ -237,7 +229,6 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
             ) : null}
           </div>
 
-          {/* Input */}
           <form onSubmit={(event) => { event.preventDefault(); ask(chatInput); }} className="flex gap-2">
             <input
               value={chatInput}
@@ -250,37 +241,122 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
               disabled={!chatInput.trim() || chatMutation.isPending}
               className="inline-flex h-10 items-center gap-2 rounded-md bg-navy px-4 text-sm font-semibold text-white transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Send className="h-4 w-4" /> Ask
+              Ask
             </button>
           </form>
         </div>
       ) : null}
 
-      {/* Brief generation */}
+      {/* Brief area */}
       <div className="border-t border-line p-5 space-y-4">
-        <div className="grid gap-2 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || isStreaming}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-line bg-surface px-3 text-sm font-semibold transition-colors hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-            Generate decision-support brief
-          </button>
-          <button
-            type="button"
-            onClick={isStreaming ? stopStreaming : startStreaming}
-            disabled={mutation.isPending}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-line bg-surface px-3 text-sm font-semibold transition-colors hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isStreaming ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
-            {isStreaming ? "Stop stream" : "Stream decision-support brief"}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={isStreaming ? stopStreaming : startStreaming}
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-line bg-surface px-3 text-sm font-semibold transition-colors hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isStreaming ? <StopCircle className="h-4 w-4" /> : <Radio className="h-4 w-4" />}
+          {isStreaming ? "Stop stream" : "Stream decision-support brief"}
+        </button>
 
-        {streamText ? (
-          <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-ink p-4 text-xs leading-5 text-white/80 font-mono">{streamText}</pre>
+        {/* Node status chips during streaming */}
+        {isStreaming ? (
+          <div className="flex flex-wrap gap-2">
+            {NODE_ORDER.map((name) => {
+              const status = nodeStatuses[name];
+              return (
+                <span
+                  key={name}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                    status === "done"
+                      ? "bg-positive/10 text-positive border border-positive/20"
+                      : status === "running"
+                      ? "bg-cyan/10 text-cyan border border-cyan/20"
+                      : "bg-subtle text-muted border border-line"
+                  }`}
+                >
+                  {status === "done" ? "✓" : status === "running" ? <Loader2 className="h-3 w-3 animate-spin" /> : "○"}
+                  {NODE_LABELS[name]}
+                </span>
+              );
+            })}
+            {isStreaming && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-cyan border border-cyan/20">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Streaming from Groq...
+              </span>
+            )}
+          </div>
+        ) : null}
+
+        {/* Streamed Markdown answer */}
+        {streamMarkdown ? (
+          <div className="rounded-md border border-line bg-white p-5">
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">
+              <BrainCircuit className="h-3.5 w-3.5 text-cyan" />
+              Credit Copilot Answer
+            </div>
+            <div className="prose-sm max-w-none">
+              <CopilotMarkdown content={streamMarkdown} />
+            </div>
+          </div>
+        ) : null}
+
+        {/* Final brief metadata (only after streaming completes with a final event) */}
+        {brief && !isStreaming ? (
+          <div className="space-y-4">
+            {/* Supporting Evidence */}
+            {brief.cited_internal_inputs.length > 0 ? (
+              <div>
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Supporting Evidence</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {brief.cited_internal_inputs.map((input) => (
+                    <SourceChip key={input} input={input} msmeId={msmeId} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Assumptions */}
+            {brief.assumptions.length > 0 ? (
+              <div>
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Assumptions</div>
+                <ul className="space-y-1">
+                  {brief.assumptions.map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-xs leading-5 text-muted">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-line" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {/* Follow-up Questions */}
+            {brief.follow_up_questions.length > 0 ? (
+              <div>
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Follow-up Questions</div>
+                <ol className="list-decimal space-y-1 pl-5">
+                  {brief.follow_up_questions.map((item) => (
+                    <li key={item} className="text-xs leading-5 text-muted">{item}</li>
+                  ))}
+                </ol>
+              </div>
+            ) : null}
+
+            {/* Recommended Human Action */}
+            {brief.recommended_human_action ? (
+              <div className="rounded-md border border-amber/20 bg-amber/5 p-4">
+                <div className="text-xs font-bold uppercase tracking-wider text-amber mb-2">Recommended Human Action</div>
+                <p className="text-sm leading-6 text-ink">{brief.recommended_human_action}</p>
+              </div>
+            ) : null}
+
+            {/* Analysis Details accordion - collapsed, contains node outputs */}
+            <AnalysisDetailsAccordion brief={brief} />
+
+            {/* Agent Trace */}
+            <TraceAccordion trace={brief.trace} />
+          </div>
         ) : null}
 
         {streamError ? (
@@ -290,16 +366,55 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
           </div>
         ) : null}
 
-        {brief ? <BriefView brief={brief} /> : (
+        {!brief && !streamMarkdown && !streamError && !isStreaming ? (
           <p className="text-xs leading-5 text-muted">Generate or stream a grounded decision-support brief from backend score, prospect, risk, evidence, and transaction-summary inputs.</p>
-        )}
+        ) : null}
       </div>
     </div>
   );
 }
 
+function AnalysisDetailsAccordion({ brief }: { brief: CopilotBrief }) {
+  const hasDetails = brief.data_quality_observations || brief.credit_analyst_explanation || brief.prospect_assist_recommendation || brief.risk_investigator_findings || brief.final_lending_brief;
+  if (!hasDetails) return null;
+  return (
+    <details className="rounded-md border border-line bg-surface">
+      <summary className="cursor-pointer px-4 py-2.5 text-xs font-semibold text-muted hover:text-ink transition-colors">
+        Analysis Details
+      </summary>
+      <div className="divide-y divide-line border-t border-line">
+        {brief.data_quality_observations ? (
+          <div className="px-4 py-3">
+            <div className="text-xs font-semibold text-muted mb-1">Data Quality Observations</div>
+            <p className="text-xs leading-5 text-ink">{brief.data_quality_observations}</p>
+          </div>
+        ) : null}
+        {brief.credit_analyst_explanation ? (
+          <div className="px-4 py-3">
+            <div className="text-xs font-semibold text-muted mb-1">Credit Analyst</div>
+            <p className="text-xs leading-5 text-ink">{brief.credit_analyst_explanation}</p>
+          </div>
+        ) : null}
+        {brief.prospect_assist_recommendation ? (
+          <div className="px-4 py-3">
+            <div className="text-xs font-semibold text-muted mb-1">Prospect Assist</div>
+            <p className="text-xs leading-5 text-ink">{brief.prospect_assist_recommendation}</p>
+          </div>
+        ) : null}
+        {brief.risk_investigator_findings ? (
+          <div className="px-4 py-3">
+            <div className="text-xs font-semibold text-muted mb-1">Risk Investigator</div>
+            <p className="text-xs leading-5 text-ink">{brief.risk_investigator_findings}</p>
+          </div>
+        ) : null}
+      </div>
+    </details>
+  );
+}
+
 function SourceChip({ input, msmeId }: { input: string; msmeId: string }) {
   const evidenceId = input.startsWith("evidence:") ? input.slice("evidence:".length) : null;
+  const isScoreHistory = input.startsWith("score_history:") || input.startsWith("score_delta_event:");
   if (evidenceId) {
     return (
       <a
@@ -313,66 +428,14 @@ function SourceChip({ input, msmeId }: { input: string; msmeId: string }) {
       </a>
     );
   }
-  return <span className="rounded border border-line bg-subtle px-1.5 py-0.5 font-mono text-[10px]">{input}</span>;
-}
-
-function BriefView({ brief }: { brief: CopilotBrief }) {
-  return (
-    <div className="space-y-5 text-sm border-t border-line pt-4">
-      <div className="rounded-md border border-positive/20 bg-positive/5 p-4">
-        <div className="text-xs font-bold uppercase tracking-wider text-positive mb-2">Summary</div>
-        <p className="leading-6 text-ink">{brief.summary}</p>
-      </div>
-      <div className="rounded-md border border-navy/20 bg-navy/5 p-4">
-        <div className="text-xs font-bold uppercase tracking-wider text-navy mb-2">Decision-Support Lending Brief</div>
-        <p className="leading-6 text-ink">{brief.final_lending_brief}</p>
-      </div>
-      <BriefSection title="Data Quality Observations" body={brief.data_quality_observations} />
-      <BriefSection title="Credit Analyst" body={brief.credit_analyst_explanation} />
-      <BriefSection title="Prospect Assist" body={brief.prospect_assist_recommendation} />
-      <BriefSection title="Risk Investigator" body={brief.risk_investigator_findings} />
-      <div className="rounded-md border border-amber/20 bg-amber/5 p-4">
-        <div className="text-xs font-bold uppercase tracking-wider text-amber mb-2">Recommended Human Action</div>
-        <p className="leading-6 text-ink">{brief.recommended_human_action}</p>
-      </div>
-      <BriefListSection title="Assumptions" items={brief.assumptions} />
-      <BriefListSection title="Follow-up Questions" items={brief.follow_up_questions} />
-      <div>
-        <div className="text-xs font-semibold uppercase tracking-wider text-muted mb-2">Cited Internal Inputs</div>
-        <div className="flex flex-wrap gap-1.5">
-          {brief.cited_internal_inputs.map((input) => (
-            <span key={input} className="rounded border border-line bg-subtle px-2 py-0.5 font-mono text-[10px] text-muted">{input}</span>
-          ))}
-        </div>
-      </div>
-      <TraceAccordion trace={brief.trace} />
-    </div>
-  );
-}
-
-function BriefSection({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="border-l-2 border-line pl-4">
-      <div className="text-xs font-semibold uppercase tracking-wider text-muted mb-1">{title}</div>
-      <p className="leading-6 text-ink">{body}</p>
-    </div>
-  );
-}
-
-function BriefListSection({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div>
-      <div className="text-xs font-semibold uppercase tracking-wider text-muted mb-2">{title}</div>
-      <ul className="space-y-1">
-        {items.map((item) => (
-          <li key={item} className="flex items-start gap-2 text-xs leading-5 text-muted">
-            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-line" />
-            {item}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+  if (isScoreHistory) {
+    return (
+      <span className="rounded border border-line bg-subtle px-1.5 py-0.5 font-mono text-[10px] text-muted cursor-default">
+        {input}
+      </span>
+    );
+  }
+  return <span className="rounded border border-line bg-subtle px-1.5 py-0.5 font-mono text-[10px] text-muted">{input}</span>;
 }
 
 function TraceAccordion({ trace }: { trace: TraceStep[] }) {

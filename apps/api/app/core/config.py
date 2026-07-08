@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     service_version: str = "0.1.0"
     database_url: str = Field(default="sqlite+pysqlite:///:memory:", alias="DATABASE_URL")
     cors_origins: str = Field(default="http://localhost:3000", alias="CORS_ORIGINS")
-    ai_provider: str = Field(default="mock", alias="AI_PROVIDER")
+    ai_provider: str = Field(default="", alias="AI_PROVIDER")
     groq_api_key: str = Field(default="", alias="GROQ_API_KEY")
     groq_model_stream: str = Field(default="llama-3.3-70b-versatile", alias="GROQ_MODEL_STREAM")
     groq_model_structured: str = Field(default="llama-3.3-70b-versatile", alias="GROQ_MODEL_STRUCTURED")

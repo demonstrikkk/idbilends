@@ -25,9 +25,20 @@ class MockCopilotProvider(BaseCopilotProvider):
         negative_text = negatives[0]["label"] if negatives else "no material negative factor returned"
         early_text = early[0]["label"] if early else "no active early-warning trigger returned"
 
+        answer_md = (
+            f"### Credit Copilot Answer\n\n"
+            f"#### Case Summary\n"
+            f"{profile['business_name']} has score {score['score']} and risk tier {score['risk_tier']} with {score['data_confidence']}% data confidence.\n\n"
+            f"#### Recommended Human Action\n"
+            f"{score['recommended_human_action']}\n\n"
+            f"#### Sources Used\n"
+            f"- `msme_profile:{context.msme_id}`\n"
+            f"- `score_output:{context.score.get('id', 'unknown')}`\n"
+        )
         return CopilotBriefPayload(
             id=f"brief_{uuid4().hex[:10]}",
             msme_id=context.msme_id,
+            answer_markdown=answer_md,
             summary=f"{profile['business_name']} has score {score['score']} and risk tier {score['risk_tier']} with {score['data_confidence']}% data confidence.",
             executive_summary=(
                 f"{profile['business_name']} is a {profile['segment']} case for decision-support review. "

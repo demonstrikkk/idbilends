@@ -18,13 +18,16 @@ def test_provider_status_does_not_expose_secrets():
     assert set(body) == {
         "configured_provider",
         "groq_configured",
-        "streaming_enabled",
+        "user_facing_ai_enabled",
+        "available_user_modes",
         "stream_model",
         "structured_model",
-        "active_default_provider",
+        "active_provider",
         "message",
     }
-    assert "api_key" not in str(body).lower()
+    raw = str(body)
+    assert "sk-" not in raw
+    assert "gsk_" not in raw
 
 
 def test_portfolio_cases_endpoint_returns_score_and_prospect_outputs():

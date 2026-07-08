@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 import pytest
 from fastapi import HTTPException
@@ -62,6 +63,15 @@ def test_copilot_endpoint_works_in_mock_mode_and_cites_inputs():
     assert any(item.startswith("score_output:") for item in body["cited_internal_inputs"])
 
 
+def test_mock_brief_includes_answer_markdown():
+    seed()
+    response = client.post("/copilot/msme_001/brief", json={"mode": "mock", "include_trace": True})
+    assert response.status_code == 200
+    body = response.json()
+    assert "answer_markdown" in body
+    assert body["answer_markdown"]
+
+
 def test_copilot_streaming_endpoint_works_in_mock_mode():
     seed()
     with client.stream("GET", "/copilot/msme_001/brief/stream?mode=mock") as response:
@@ -71,6 +81,14 @@ def test_copilot_streaming_endpoint_works_in_mock_mode():
     assert "event: node_update" in text
     assert "event: token" in text
     assert "event: final" in text
+
+
+def test_streamed_final_event_contains_answer_markdown():
+    seed()
+    with client.stream("GET", "/copilot/msme_001/brief/stream?mode=mock") as response:
+        assert response.status_code == 200
+        text = "".join(response.iter_text())
+    assert "answer_markdown" in text
 
 
 def test_missing_documents_appear_in_data_quality_output():
@@ -113,3 +131,44 @@ def test_forbidden_final_decision_language_is_sanitized():
     unsafe = "Loan " + "granted and app" + "roved with guaran" + "teed risk" + "-free terms."
     safe = sanitize_copilot_text(unsafe)
     assert not contains_forbidden_language(safe)
+
+
+def test_groq_mode_never_returns_mock_provider(monkeypatch):
+    monkeypatch.setenv("AI_PROVIDER", "groq")
+    monkeypatch.setenv("GROQ_API_KEY", "test-key-placeholder")
+    get_settings.cache_clear()
+    try:
+        provider = get_provider("groq")
+        assert provider.provider_name == "groq"
+        assert provider.provider_name != "mock"
+    except HTTPException:
+        pass
+    get_settings.cache_clear()
+
+
+def test_groq_missing_key_returns_provider_error():
+    seed()
+    response = client.post("/copilot/msme_001/brief", json={"mode": "groq", "include_trace": True})
+    assert response.status_code in {503, 500}
+    body = response.json()
+    code = ""
+    detail = body.get("detail", None) or body.get("error", {})
+    if isinstance(detail, dict):
+        code = str(detail.get("code", ""))
+    assert "UNAVAILABLE" in code or "INTERNAL_ERROR" in code or "FAILED" in code
+
+
+def test_provider_status_does_not_expose_mock_as_user_facing():
+    response = client.get("/copilot/provider/status")
+    assert response.status_code == 200
+    body = response.json()
+    assert "mock" not in body.get("available_user_modes", [])
+
+
+def test_disabled_mode_returns_disabled_brief():
+    seed()
+    response = client.post("/copilot/msme_001/brief", json={"mode": "disabled", "include_trace": True})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["provider"] == "disabled"
+    assert body["decision_support_only"] is True

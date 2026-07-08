@@ -35,6 +35,7 @@ class CopilotBriefRequest(BaseModel):
 class CopilotBriefPayload(BaseModel):
     id: str
     msme_id: str
+    answer_markdown: str = ""
     summary: str
     executive_summary: str
     data_quality_observations: str
@@ -82,8 +83,9 @@ class CopilotStreamEvent(BaseModel):
 class CopilotProviderStatus(BaseModel):
     configured_provider: str
     groq_configured: bool
-    streaming_enabled: bool
+    user_facing_ai_enabled: bool
+    available_user_modes: list[str]
     stream_model: str
     structured_model: str
-    active_default_provider: str
+    active_provider: str
     message: str | None = None
