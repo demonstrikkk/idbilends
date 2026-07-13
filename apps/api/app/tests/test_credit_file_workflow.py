@@ -62,7 +62,7 @@ def test_copilot_chat_endpoint_returns_decision_support_answer_with_citations():
     assert body["decision_support_only"] is True
     assert body["cited_internal_inputs"]
     assert body["provider"] == "mock"
-    assert "Decision-support only" in body["answer"]
+    assert "Decision-support only" in body["answer_markdown"]
     assert any(item.startswith("evidence:") for item in body["cited_internal_inputs"])
 
 
@@ -107,3 +107,43 @@ def test_evidence_list_detail_file_upload_and_status_update():
     patch = client.patch(f"/credit-file/msme_001/evidence/{uploaded['id']}/status", json={"status": "available"})
     assert patch.status_code == 200
     assert patch.json()["status"] == "available"
+
+
+def test_evidence_record_includes_new_phase8_fields():
+    seed()
+    listing = client.get("/credit-file/msme_001/evidence")
+    assert listing.status_code == 200
+    for record in listing.json():
+        assert "evidence_type" in record
+        assert "title" in record
+        assert "source" in record
+        assert "extraction_status" in record
+        assert "confidence_impact" in record
+        assert "risk_impact" in record
+        assert "lending_question" in record
+        assert record.get("evidence_type") in {"bank_statement", "gst_returns", "bureau_report", "itr", "udyam", "uploaded_document", "other"}
+
+
+def test_seeded_evidence_has_viewable_preview_file():
+    seed()
+    listing = client.get("/credit-file/msme_001/evidence")
+    assert listing.status_code == 200
+    for record in listing.json():
+        file_resp = client.get(f"/credit-file/msme_001/evidence/{record['id']}/file")
+        assert file_resp.status_code == 200
+        assert len(file_resp.text) > 50
+
+
+def test_score_delta_reasons_include_before_after_values():
+    client.post("/demo/seed", json={"reset": True, "seed": 42, "profile_count": 9})
+    client.post("/monitoring/events/manual", json={"msme_id": "msme_001", "event_type": "bounce_event_recorded"})
+    history = client.get("/score-history/msme_001")
+    assert history.status_code == 200
+    items = history.json()["items"]
+    assert items
+    for entry in items:
+        for reason in entry["reasons"]:
+            assert reason["detail"]
+            assert len(reason["detail"]) > 10
+            if "changed from" in reason["label"].lower():
+                assert "to" in reason["label"]

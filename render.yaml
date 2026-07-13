@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: lendsignal-api
+    runtime: docker
+    rootDir: apps/api
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: CORS_ORIGINS
+        fromService:
+          name: lendsignal-web
+          type: web
+          property: url
+      - key: AI_PROVIDER
+        value: ""
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DATABASE_URL
+        value: sqlite+pysqlite:///:memory:
+      - key: SERVICE_VERSION
+        value: 0.1.0
+
+  - type: web
+    name: lendsignal-web
+    runtime: docker
+    rootDir: apps/web
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: NEXT_PUBLIC_API_BASE_URL
+        fromService:
+          name: lendsignal-api
+          type: web
+          property: url
+      - key: NEXT_PUBLIC_APP_NAME
+        value: LendSignal 360

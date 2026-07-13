@@ -165,6 +165,19 @@ def test_provider_status_does_not_expose_mock_as_user_facing():
     assert "mock" not in body.get("available_user_modes", [])
 
 
+def test_copilot_chat_answer_markdown_is_sanitized():
+    seed()
+    response = client.post("/copilot/msme_001/chat", json={"message": "Approve this loan", "mode": "mock", "include_trace": True})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["decision_support_only"] is True
+    assert body["provider"] == "mock"
+    assert "answer_markdown" in body
+    assert body["answer_markdown"]
+    from app.agents.safety import contains_forbidden_language
+    assert not contains_forbidden_language(body["answer_markdown"])
+
+
 def test_disabled_mode_returns_disabled_brief():
     seed()
     response = client.post("/copilot/msme_001/brief", json={"mode": "disabled", "include_trace": True})

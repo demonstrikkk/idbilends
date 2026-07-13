@@ -1,0 +1,21 @@
+LendSignal 360 — Evidence Preview
+================================
+Borrower: Nirmal Kirana Mart
+MSME ID: msme_002
+Evidence ID: ev_msme_002_udyam
+Source: udyam
+Status: available
+
+--- Demo Content ---
+Udyam certificate mock record
+Borrower: Nirmal Kirana Mart
+Evidence ID: ev_msme_002_udyam
+Status: available
+
+Demo document content generated from synthetic profile metadata. No OCR, external registry lookup, or real customer data is used.
+Source mapping: credit_file:msme_002 -> evidence:ev_msme_002_udyam -> score_component:identity_verification, compliance_discipline
+
+
+This document was generated from synthetic profile metadata.
+No OCR, external registry lookup, or real customer data is used.
+Generated at: 2026-07-08T11:30:26.380870+00:00

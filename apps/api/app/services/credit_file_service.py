@@ -22,37 +22,37 @@ from app.services.transaction_summary_service import get_transaction_summary
 DOCUMENT_EVIDENCE = {
     "bank_statement": (
         "Bank statement summary",
-        "Cash inflow consistency, balance cushion, bounce behavior, and repayment capacity.",
+        "Cash inflow consistency, average balance cushion (affects cashflow_strength scoring), bounce count (affects repayment_stress), and repayment capacity estimate. Missing or stale bank statement reduces data confidence and blocks cashflow verification.",
         "cashflow_strength",
         "Verify latest statement",
     ),
     "gst_returns": (
         "GST-like turnover summary",
-        "Revenue verification, filing discipline, and data confidence.",
+        "Revenue verification against bank deposits, filing regularity (affects compliance_discipline scoring), and data confidence for revenue-based components. Missing GST returns signal a compliance gap that limits the revenue growth assessment.",
         "compliance_discipline",
         "Request latest filing",
     ),
     "udyam": (
         "Udyam-like identity record",
-        "Business identity and MSME registration evidence.",
+        "Business identity verification and MSME registration validity. Required for compliance_discipline scoring and eligibility for priority-sector-linked credit products.",
         "compliance_discipline",
         "View identity record",
     ),
     "bureau_report": (
         "Bureau-like relationship record",
-        "Existing obligations, repayment stress, and credit discipline.",
+        "Existing obligation levels, repayment track record, and overall credit discipline (affects repayment_stress scoring). Missing bureau data leaves existing debt exposure unverified.",
         "repayment_stress",
         "Verify obligations",
     ),
     "itr": (
         "ITR-like document",
-        "Income consistency and additional verification depth.",
+        "Income consistency across filings, verification depth for declared revenue (affects data_quality and revenue confidence). Missing ITR reduces confidence in income-reported metrics.",
         "data_quality",
         "Request document",
     ),
     "gem_profile": (
         "GeM-like seller profile",
-        "Order completion, buyer concentration, and working-capital signal.",
+        "Order completion rate, buyer concentration, and working-capital cycle signal (affects business_concentration scoring and prospect readiness). Available for GeM-like sellers only.",
         "business_concentration",
         "Use in brief",
     ),
@@ -132,7 +132,7 @@ def _evidence_status(documents) -> list[EvidenceStatusItem]:
                 related_score_component=component,
                 action_label=action if enabled else "Request evidence",
                 action_enabled=enabled,
-                disabled_reason=None if enabled else "Source is not available in current backend phase.",
+                disabled_reason=None if enabled else f"Evidence type {field} is marked as {status}. Request the officer to obtain and upload the document before proceeding with credit assessment.",
             )
         )
     return items

@@ -148,6 +148,18 @@ apps/api/app/
       prospects.py
       copilot.py
       audit.py
+      credit_file.py
+      evidence.py
+      command_center.py
+      case_inbox.py
+      monitoring.py
+      portfolio.py
+      watchlist.py
+      alerts.py
+      insights.py
+      model_monitor.py
+      market_overlays.py
+      scoring_weights.py
   services/
     msme_service.py
     synthetic_data_service.py
@@ -155,6 +167,12 @@ apps/api/app/
     prospect_service.py
     risk_service.py
     audit_service.py
+    evidence_service.py
+    credit_file_service.py
+    monitoring_service.py
+    command_center_service.py
+    market_overlay_service.py
+    score_history_service.py
   agents/
     graph.py
     state.py
@@ -170,6 +188,7 @@ apps/api/app/
       base.py
       mock.py
       openai_compatible.py
+      groq.py
     schemas.py
   tests/
 ```
@@ -248,6 +267,59 @@ Owns:
 - provider call
 - trace creation
 - fallback behavior
+- streaming brief generation
+- chat and explain-delta endpoints
+- per-node error recovery
+
+### Evidence Service
+
+Owns:
+
+- evidence record CRUD
+- file metadata and preview
+- evidence status updates
+- source-to-underwriting mapping
+
+### Credit File Service
+
+Owns:
+
+- aggregate MSME credit file bundle
+- evidence map generation
+- transaction summary derivation
+
+### Monitoring Service
+
+Owns:
+
+- live monitoring session lifecycle
+- simulated event injection
+- score delta tracking
+- WebSocket event broadcast
+
+### Command Center Service
+
+Owns:
+
+- 1000-case triage views
+- saved views, filters, facets, pagination
+- derived score deltas and blockers
+
+### Market Overlay Service
+
+Owns:
+
+- simulated macro/industry overlays
+- overlay impact on scores (deterministic, separate from policy score)
+- overlay simulation endpoint
+
+### Score History Service
+
+Owns:
+
+- score snapshot history per MSME
+- latest delta computation
+- score movement aggregation
 
 ## 7. Frontend architecture
 
@@ -255,15 +327,30 @@ Owns:
 apps/web/src/
   app/
     page.tsx
+    command-center/page.tsx
     dashboard/page.tsx
     msmes/page.tsx
     msmes/[id]/page.tsx
     governance/page.tsx
+    case-inbox/page.tsx
+    data-room/page.tsx
+    evidence-map/page.tsx
+    copilot/page.tsx
+    portfolio/page.tsx
+    monitoring/page.tsx
+    watchlist/page.tsx
+    alerts/page.tsx
+    policy-center/page.tsx
+    model-monitor/page.tsx
+    reports/page.tsx
+    data-insights/page.tsx
+    data-dictionary/page.tsx
   components/
     layout/
       AppShell.tsx
       Sidebar.tsx
-      Topbar.tsx
+      TopCommandBar.tsx
+    command-center/
     dashboard/
       PortfolioSummaryCards.tsx
       RiskDistributionChart.tsx
@@ -291,11 +378,24 @@ apps/web/src/
       CreditCopilotPanel.tsx
       CopilotBrief.tsx
       AgentTraceAccordion.tsx
+      AgentStatusBadge.tsx
+      ApprovalGate.tsx
+      ToolCallCard.tsx
+      TraceTimeline.tsx
     governance/
       AuditTimeline.tsx
       ProviderModeCard.tsx
       RuleVersionCard.tsx
     ui/
+      button.tsx
+      badge.tsx
+      card.tsx
+      skeleton.tsx
+      dialog.tsx
+      tooltip.tsx
+      scroll-area.tsx
+    ErrorBoundary.tsx
+    theme-provider.tsx
   lib/
     api/
       client.ts
@@ -313,6 +413,7 @@ apps/web/src/
     formatters.ts
     constants.ts
   hooks/
+    useCopilotStream.ts
 ```
 
 ## 8. API design

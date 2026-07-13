@@ -24,6 +24,7 @@ class TraceStep(BaseModel):
     output_ref: str | None = None
     error_code: str | None = None
     notes: str | None = None
+    duration_ms: int | None = None
 
 
 class CopilotBriefRequest(BaseModel):

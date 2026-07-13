@@ -162,7 +162,8 @@ async def apply_monitoring_event(msme_id: str, event_type: MonitoringEventType) 
         changes["monitoring_status"] = "sector_stress"
     updated = profile.model_copy(update={"financials": financials, "documents": documents, "last_updated": utc_now(), "monitoring_status": "attention" if severity == "high" else profile.monitoring_status})
     store.upsert_profile(updated)
-    event = MonitoringEvent(id=f"evt_{uuid4().hex[:10]}", msme_id=msme_id, event_type=event_type, label=event_type.value.replace("_", " ").title(), severity=severity, feature_changes=changes, created_at=utc_now())
+    changes_str = "; ".join(f"{k}: {v}" for k, v in changes.items()) if changes else "no numeric changes"
+    event = MonitoringEvent(id=f"evt_{uuid4().hex[:10]}", msme_id=msme_id, event_type=event_type, label=f"{event_type.value.replace('_', ' ').title()} ({changes_str})", severity=severity, feature_changes=changes, created_at=utc_now())
     store.add_monitoring_event(event)
     score = generate_score(msme_id, persist=True, include_trace=True, event_id=event.id)
     history = store.latest_score_history(msme_id)

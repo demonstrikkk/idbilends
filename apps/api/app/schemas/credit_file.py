@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel
@@ -30,9 +31,25 @@ class EvidenceExtractedSignal(BaseModel):
     confidence: int
 
 
+class EvidenceType(StrEnum):
+    bank_statement = "bank_statement"
+    gst_returns = "gst_returns"
+    bureau_report = "bureau_report"
+    itr = "itr"
+    udyam = "udyam"
+    uploaded_document = "uploaded_document"
+    gem_profile = "gem_profile"
+    identity_proof = "identity_proof"
+    address_proof = "address_proof"
+    other = "other"
+
+
 class EvidenceRecord(BaseModel):
     id: str
     msme_id: str
+    evidence_type: EvidenceType = EvidenceType.other
+    title: str = ""
+    source: str = ""
     source_type: str
     document_name: str
     status: Literal["available", "partial", "missing", "stale", "not_applicable"]
@@ -42,9 +59,15 @@ class EvidenceRecord(BaseModel):
     storage_path: str | None = None
     preview_text: str
     extracted_signals: list[EvidenceExtractedSignal]
+    extraction_status: str = "pending"
+    confidence_impact: str = "medium"
+    risk_impact: str = "medium"
     related_score_components: list[str]
+    lending_question: str = ""
     source_mapping: list[str]
     uploaded_by: str
+    reviewed_at: datetime | None = None
+    audit_event_id: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -121,10 +144,15 @@ class CopilotChatRequest(BaseModel):
 
 
 class CopilotChatResponse(BaseModel):
-    answer: str
+    answer_markdown: str
     decision_support_only: Literal[True] = True
     cited_internal_inputs: list[str]
     trace: list[TraceStep]
     provider: str
     model: str
+    prompt_version: str = ""
+    summary: str = ""
+    recommended_human_action: str = ""
+    assumptions: list[str] = []
+    follow_up_questions: list[str] = []
     created_at: datetime

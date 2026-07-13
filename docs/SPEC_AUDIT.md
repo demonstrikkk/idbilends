@@ -161,21 +161,21 @@ Some prompt files still mention forbidden phrases only as negative examples to a
 
 ## Remaining risks
 
-### Score and prospect generation lifecycle
+### Score and prospect generation lifecycle (resolved)
 
-The docs define `GET /msmes` and `GET /msmes/{id}` responses that already expose latest score/prospect ids and list metrics, but they do not fully specify whether seed data precomputes those outputs or whether first-load generation is lazy. Phase 1 should choose one policy and document it in route behavior.
+Seed data precomputes score and prospect outputs during seeding. `GET /msmes` and `GET /msmes/{id}` return latest available ids. `POST /scores/{id}/generate` triggers on-demand regeneration if needed.
 
-### Transaction summary contract
+### Transaction summary contract (resolved)
 
-`get_transaction_summary` is allowlisted for Copilot, but no public REST contract exists yet for a reusable transaction-summary payload shape. Phase 1 can keep it internal, but the internal schema should be defined when the service layer is built.
+`get_transaction_summary` is allowlisted for Copilot and exposed via `GET /credit-file/{msme_id}/transaction-summary`. The internal schema is defined in the credit file service layer.
 
 ### Audit retrieval scope
 
-Current API defines `GET /audit/{msme_id}` only. That supports MSME-scoped audit trails, but not a portfolio-wide governance timeline. If a global governance page is desired later, add a separate list endpoint rather than overloading the current route.
+Current API provides `GET /audit/{msme_id}` for MSME-scoped audit trails alongside portfolio aggregation endpoints (`GET /portfolio/summary`, `GET /model-monitor/snapshot`, etc.) for aggregate governance views.
 
-### Prompt file drift
+### Prompt file drift (resolved)
 
-Phase prompts outside the mandatory Phase 0 set may still contain legacy references. They should be normalized before implementation work starts to reduce prompt confusion during later phases.
+Prompt files in `apps/api/app/agents/prompts/` are versioned and aligned with current agent node contracts (data_quality_v1.md, credit_analyst_v1.md, prospect_assist_v1.md, risk_investigator_v1.md, lending_brief_v1.md). Each prompt includes role, task, allowed inputs, forbidden behavior, output schema, citation instruction, and decision-support disclaimer as required.
 
 ## Phase 0 exit recommendation
 

@@ -1,0 +1,21 @@
+LendSignal 360 — Evidence Preview
+================================
+Borrower: Pragati Design Services
+MSME ID: msme_005
+Evidence ID: ev_msme_005_bureau_report
+Source: bureau_report
+Status: missing
+
+--- Demo Content ---
+Evidence document
+Borrower: Pragati Design Services
+Evidence ID: ev_msme_005_bureau_report
+Status: missing
+
+Demo document content generated from synthetic profile metadata. No OCR, external registry lookup, or real customer data is used.
+Source mapping: credit_file:msme_005 -> evidence:ev_msme_005_bureau_report -> score_component:repayment_stress
+
+
+This document was generated from synthetic profile metadata.
+No OCR, external registry lookup, or real customer data is used.
+Generated at: 2026-07-08T11:52:31.911731+00:00

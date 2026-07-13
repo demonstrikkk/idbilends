@@ -6,10 +6,11 @@ Phase: 3.7 Product Realignment + Banker Workbench Rebuild
 
 | Page | Job | Backend source | No-fake handling |
 |---|---|---|---|
-| `/command-center` | Primary officer command center for 1000-case triage, instant preview, evidence drawer, Copilot drawer, and monitoring injection | `GET /command-center/cases`, `GET /credit-file/{id}/evidence`, `POST /monitoring/events/manual`, `POST /copilot/{id}/chat` | Rows, blockers, deltas, facets, evidence IDs, and actions are backend-derived. No frontend-only case summaries. |
+
 | `/case-inbox` | Group cases needing officer action | `GET /case-inbox` | Lanes contain only backend-derived cases. Empty lanes show empty state. |
 | `/msmes` | Credit file register | `GET /portfolio/cases` | Rows use backend profile, score, and prospect outputs. |
-| `/msmes/{id}` | Flagship Credit File workbench | `GET /credit-file/{id}` | Score, posture, evidence, transaction summary, risk, and audit come from backend bundle. |
+| `/msmes/{id}` | Credit File workbench | `GET /credit-file/{id}` | Score, posture, evidence, transaction summary, risk, and audit come from backend bundle. |
+| `/command-center` | Primary officer triage for 1000-case search, filters, instant preview, evidence drawer, Copilot, and monitoring injection | `GET /command-center/cases`, `GET /credit-file/{id}/evidence`, `POST /monitoring/events/manual`, `POST /copilot/{id}/chat` | Rows, blockers, deltas, facets, evidence IDs, and actions are backend-derived. No frontend-only case summaries. |
 | `/data-room` | Organized evidence records and document viewer | `GET /portfolio/cases`, `GET /credit-file/{id}`, evidence endpoints | Document previews, extracted metadata, source mapping, and status updates are backend-backed. |
 | `/evidence-map` | Source-to-underwriting evidence trace | `GET /credit-file/{id}/evidence-map` | Missing source data is labelled unavailable, not fabricated. |
 | `/copilot` | Case-aware Copilot chat and brief generation | `GET /portfolio/cases`, `POST /copilot/{id}/chat`, existing brief/stream endpoints | Chat answers are backend-generated from sanitized context. |
@@ -32,6 +33,6 @@ Phase: 3.7 Product Realignment + Banker Workbench Rebuild
 - Fake report history, model history, policy approvals, or owner queues.
 - Frontend-only score history, monitoring events, score deltas, or market overlay impacts.
 
-## 21st.dev
+## shadcn/ui
 
-21st.dev Magic tools were discoverable, but `21st_magic_component_inspiration` failed with an MCP response validation error. No external component snippet was installed. Equivalent workflow components were implemented manually with the existing Next.js, TypeScript, Tailwind, lucide, TanStack Query, and Zod stack.
+shadcn/ui components (Button, Badge, Card, Skeleton, Dialog, Tooltip, ScrollArea) are installed and used throughout the app for consistent banking-grade UI.

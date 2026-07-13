@@ -1,16 +1,24 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, BrainCircuit, ExternalLink, Loader2, Radio, RefreshCw, StopCircle } from "lucide-react";
-import { useRef, useState } from "react";
+import { AlertTriangle, BrainCircuit, Loader2, Radio, SendHorizontal, StopCircle, ChevronDown, X, MessageSquareQuote, Sparkles } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api/client";
 import { evidenceFileUrl, sendCopilotChat } from "@/lib/api/credit-file";
 import { getCopilotProviderStatus, copilotStreamUrl } from "@/lib/api/copilot";
-import { copilotBriefSchema, type CopilotBrief, type TraceStep } from "@/lib/schemas/copilot";
+import { useCopilotStream, NODE_ORDER, NODE_LABELS } from "@/lib/hooks/useCopilotStream";
+import type { CopilotBrief, TraceStep } from "@/lib/schemas/copilot";
 import type { CopilotChatResponse } from "@/lib/schemas/credit-file";
-import { decisionSupportCopy } from "@/lib/constants";
 import { titleize } from "@/lib/formatters";
+import { AgentStatusBadge } from "./AgentStatusBadge";
+import { ApprovalGate } from "./ApprovalGate";
+import { TraceTimeline } from "./TraceTimeline";
 import { CopilotMarkdown } from "./CopilotMarkdown";
+import { cn } from "@/lib/utils";
 
 type Props = {
   msmeId: string;
@@ -18,29 +26,32 @@ type Props = {
   chatEnabled?: boolean;
 };
 
-type NodeName = "data_quality_node" | "credit_analyst_node" | "prospect_assist_node" | "risk_investigator_node";
-
-const NODE_LABELS: Record<NodeName, string> = {
-  data_quality_node: "Data Quality",
-  credit_analyst_node: "Credit Analyst",
-  prospect_assist_node: "Prospect Assist",
-  risk_investigator_node: "Risk Investigator",
-};
-
-const NODE_ORDER: NodeName[] = ["data_quality_node", "credit_analyst_node", "prospect_assist_node", "risk_investigator_node"];
+function useAutoScroll(deps: unknown[]) {
+  const bottomRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, deps);
+  return bottomRef;
+}
 
 export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false }: Props) {
-  const [brief, setBrief] = useState<CopilotBrief | null>(null);
   const [messages, setMessages] = useState<Array<{ role: "officer" | "copilot"; text: string; response?: CopilotChatResponse }>>([]);
   const [chatInput, setChatInput] = useState("");
-  const [streamMarkdown, setStreamMarkdown] = useState("");
-  const [streamError, setStreamError] = useState<string | null>(null);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [nodeStatuses, setNodeStatuses] = useState<Record<NodeName, "pending" | "running" | "done">>(
-    Object.fromEntries(NODE_ORDER.map((n) => [n, "pending"])) as Record<NodeName, "pending" | "running" | "done">
-  );
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    isStreaming,
+    streamMarkdown,
+    streamError: hookError,
+    brief,
+    nodeStatuses,
+    startStreaming,
+    stopStreaming,
+    reset,
+  } = useCopilotStream(onAuditRefresh);
+
+  const [localStreamError, setLocalStreamError] = useState<string | null>(null);
+  const streamError = hookError ?? localStreamError;
 
   const providerStatusQuery = useQuery({
     queryKey: ["copilot", "provider-status"],
@@ -52,16 +63,18 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
   const isAiAvailable = providerStatus?.user_facing_ai_enabled === true;
   const groqModel = providerStatus?.stream_model ?? providerStatus?.structured_model ?? null;
 
+  const scrollRef = useAutoScroll([messages, streamMarkdown, isStreaming, brief]);
+
   const chatMutation = useMutation({
     mutationFn: (message: string) => sendCopilotChat(msmeId, message),
     onSuccess: (payload, message) => {
-      setMessages((current) => [...current, { role: "officer", text: message }, { role: "copilot", text: payload.answer, response: payload }]);
+      setMessages((current) => [...current, { role: "officer", text: message }, { role: "copilot", text: payload.answer_markdown, response: payload }]);
       setChatInput("");
-      setStreamError(null);
+      setLocalStreamError(null);
       onAuditRefresh?.();
     },
     onError: (error) => {
-      setStreamError(providerMessage(error));
+      setLocalStreamError(providerMessage(error));
       onAuditRefresh?.();
     },
   });
@@ -72,338 +85,365 @@ export function CreditCopilotPanel({ msmeId, onAuditRefresh, chatEnabled = false
     chatMutation.mutate(trimmed);
   }
 
-  function startStreaming() {
-    eventSourceRef.current?.close();
-    setStreamMarkdown("");
-    setStreamError(null);
-    setIsStreaming(true);
-    setNodeStatuses(
-      Object.fromEntries(NODE_ORDER.map((n) => [n, "pending"])) as Record<NodeName, "pending" | "running" | "done">
-    );
-
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-
-    const source = new EventSource(copilotStreamUrl(msmeId));
-    eventSourceRef.current = source;
-
-    source.addEventListener("status", () => {});
-
-    source.addEventListener("node_update", (event) => {
-      const payload = parseEvent(event);
-      const nodeName = String(payload.node ?? "") as NodeName;
-      if (NODE_ORDER.includes(nodeName)) {
-        setNodeStatuses((prev) => ({ ...prev, [nodeName]: "done" }));
-      }
-    });
-
-    source.addEventListener("token", (event) => {
-      const payload = parseEvent(event);
-      const md = payload.markdown ?? payload.text ?? "";
-      if (md) {
-        setStreamMarkdown((current) => `${current}${md}`);
-      }
-    });
-
-    source.addEventListener("final", (event) => {
-      try {
-        const parsed = copilotBriefSchema.parse(JSON.parse((event as MessageEvent).data));
-        setBrief(parsed);
-        if (parsed.answer_markdown) {
-          setStreamMarkdown(parsed.answer_markdown);
-        }
-      } catch {
-        setStreamError("Credit Copilot final response could not be parsed.");
-      }
-      setIsStreaming(false);
-      source.close();
-      onAuditRefresh?.();
-    });
-
-    source.addEventListener("error", (event) => {
-      const data = (event as MessageEvent).data;
-      if (data) {
-        try {
-          const payload = JSON.parse(data) as { message?: string };
-          setStreamError(payload.message ?? "Live Credit Copilot is unavailable. Deterministic score remains available.");
-        } catch {
-          setStreamError("Live Credit Copilot is unavailable. Deterministic score remains available.");
-        }
-      } else {
-        setStreamError("Live Credit Copilot is unavailable. Deterministic score remains available.");
-      }
-      setIsStreaming(false);
-      source.close();
-      onAuditRefresh?.();
-    });
-  }
-
-  function stopStreaming() {
-    abortControllerRef.current?.abort();
-    eventSourceRef.current?.close();
-    setIsStreaming(false);
+  function handleStreamToggle() {
+    if (isStreaming) {
+      stopStreaming();
+    } else {
+      setLocalStreamError(null);
+      startStreaming(copilotStreamUrl(msmeId));
+    }
   }
 
   const providerLabel = isAiAvailable
-    ? `Live AI: Groq${groqModel ? ` / ${groqModel}` : ""}`
-    : "AI unavailable";
+    ? `Groq${groqModel ? ` / ${groqModel}` : ""}`
+    : null;
+
+  const hasBrief = brief || streamMarkdown;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-surface">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 border-b border-line bg-subtle px-5 py-4">
-        <div>
-          <div className="flex items-center gap-2 text-sm font-semibold text-ink">
-            <BrainCircuit className="h-4 w-4 text-cyan" />
-            Credit Copilot
+      <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan to-navy shadow-sm">
+            <BrainCircuit className="h-4 w-4 text-white" />
           </div>
-          <p className="mt-1 text-xs text-muted">
-            {providerLabel}
-          </p>
-        </div>
-        {brief ? (
-          <span className={`rounded-md border px-2 py-1 text-xs font-semibold ${
-            brief.confidence === "high" ? "border-positive/20 bg-positive/10 text-positive" :
-            brief.confidence === "medium_high" ? "border-amber/20 bg-amber/10 text-amber" :
-            "border-line bg-subtle text-muted"
-          }`}>{titleize(brief.confidence)} Confidence</span>
-        ) : null}
-      </div>
-
-      {/* Decision-support banner */}
-      <div className="flex items-center gap-2 border-b border-line bg-navy/5 px-5 py-2 text-xs text-ink/70">
-        <AlertTriangle className="h-3.5 w-3.5 text-amber shrink-0" />
-        <span><strong>Decision-support only.</strong> Requires human review. Based on available evidence.</span>
-      </div>
-
-      {providerStatus?.message && !isAiAvailable ? (
-        <div className="mx-5 mt-4 rounded-md border border-amber/30 bg-amber/5 p-3 text-xs">
-          <div className="flex items-center gap-2 font-semibold text-amber"><AlertTriangle className="h-3.5 w-3.5" />Provider Notice</div>
-          <p className="mt-1 text-muted">{providerStatus.message}</p>
-          <p className="mt-2 text-muted">Deterministic score, evidence, and risk views remain available.</p>
-        </div>
-      ) : null}
-
-      {/* Chat area */}
-      {chatEnabled ? (
-        <div className="flex flex-1 flex-col gap-3 overflow-hidden p-5">
-          <div className="flex-1 space-y-3 overflow-y-auto rounded-md border border-line bg-workspace p-4">
-            {messages.length ? messages.map((message, index) => (
-              <div key={`${message.role}-${index}`} className={message.role === "officer" ? "flex justify-end" : "flex justify-start"}>
-                <div className={`max-w-[88%] rounded-md px-4 py-3 text-sm ${
-                  message.role === "officer"
-                    ? "bg-navy text-white"
-                    : "border border-line bg-surface text-ink"
-                }`}>
-                  {message.role === "copilot" && (
-                    <div className="mb-2 flex items-center gap-1.5 text-xs text-muted">
-                      <BrainCircuit className="h-3.5 w-3.5 text-cyan" />
-                      <span className="font-semibold text-cyan">Credit Copilot</span>
-                    </div>
-                  )}
-                  <p className="whitespace-pre-wrap leading-6">{message.text}</p>
-                  {message.response ? (
-                    <div className="mt-3 space-y-2 border-t border-line pt-2 text-xs text-muted">
-                      <div className="flex flex-wrap gap-1">
-                        {message.response.cited_internal_inputs.map((input) => <SourceChip key={input} input={input} msmeId={msmeId} />)}
-                      </div>
-                      <TraceAccordion trace={message.response.trace} />
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            )) : (
-              <div className="flex h-full items-center justify-center text-sm text-muted">
-                <div className="text-center space-y-1">
-                  <BrainCircuit className="mx-auto h-8 w-8 text-line" />
-                  <p className="font-medium">Ask a case-aware question.</p>
-                  <p className="text-xs">Responses cite internal inputs only.</p>
-                </div>
-              </div>
-            )}
-            {chatMutation.isPending ? (
-              <div className="flex items-center gap-2 text-sm text-muted">
-                <Loader2 className="h-4 w-4 animate-spin text-cyan" />
-                Preparing a grounded answer...
-              </div>
-            ) : null}
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-ink">Credit Copilot</span>
+              {providerLabel && (
+                <>
+                  <span className="hidden sm:inline-flex h-1.5 w-1.5 rounded-full bg-line" />
+                  <span className="hidden sm:inline text-[10px] font-mono text-muted">{providerLabel}</span>
+                </>
+              )}
+            </div>
+            <p className="text-[11px] text-muted leading-none mt-0.5">Decision-support only. Requires human review.</p>
           </div>
-
-          <form onSubmit={(event) => { event.preventDefault(); ask(chatInput); }} className="flex gap-2">
-            <input
-              value={chatInput}
-              onChange={(event) => setChatInput(event.target.value)}
-              placeholder="Ask about evidence gaps, risk signals, or human review action..."
-              className="h-10 min-w-0 flex-1 rounded-md border border-line bg-white px-3 text-sm outline-none placeholder:text-muted focus:border-navy transition-colors"
-            />
-            <button
-              type="submit"
-              disabled={!chatInput.trim() || chatMutation.isPending}
-              className="inline-flex h-10 items-center gap-2 rounded-md bg-navy px-4 text-sm font-semibold text-white transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-50"
+        </div>
+        <div className="flex items-center gap-2">
+          {brief ? (
+            <Badge
+              variant={
+                brief.confidence === "high" ? "positive" :
+                brief.confidence === "medium_high" ? "warning" :
+                "secondary"
+              }
+              className="text-[10px]"
             >
-              Ask
-            </button>
-          </form>
+              {titleize(brief.confidence)} Confidence
+            </Badge>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Provider notice */}
+      {!isAiAvailable ? (
+        <div className="mx-5 mt-3 rounded-lg border border-line/60 bg-workspace p-3 text-xs">
+          <div className="flex items-center gap-2 font-semibold text-muted">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber" />
+            Groq API key required
+          </div>
+          <p className="mt-1 text-muted">Set GROQ_API_KEY to enable Credit Copilot streaming and chat. Deterministic score, evidence, and risk views remain available.</p>
         </div>
       ) : null}
 
-      {/* Brief area */}
-      <div className="border-t border-line p-5 space-y-4">
-        <button
-          type="button"
-          onClick={isStreaming ? stopStreaming : startStreaming}
-          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-line bg-surface px-3 text-sm font-semibold transition-colors hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isStreaming ? <StopCircle className="h-4 w-4" /> : <Radio className="h-4 w-4" />}
-          {isStreaming ? "Stop stream" : "Stream decision-support brief"}
-        </button>
-
-        {/* Node status chips during streaming */}
-        {isStreaming ? (
-          <div className="flex flex-wrap gap-2">
-            {NODE_ORDER.map((name) => {
-              const status = nodeStatuses[name];
-              return (
-                <span
-                  key={name}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
-                    status === "done"
-                      ? "bg-positive/10 text-positive border border-positive/20"
-                      : status === "running"
-                      ? "bg-cyan/10 text-cyan border border-cyan/20"
-                      : "bg-subtle text-muted border border-line"
-                  }`}
+      {/* Main content: Chat + Brief */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Chat section */}
+        {chatEnabled ? (
+          <div className={cn(
+            "flex flex-col overflow-hidden border-b border-line transition-all duration-300",
+            hasBrief ? "flex-[2] min-h-[240px]" : "flex-1"
+          )}>
+            {/* Messages */}
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 space-y-4">
+              {messages.map((message, index) => (
+                <div
+                  key={`${message.role}-${index}`}
+                  className={cn(
+                    "flex",
+                    message.role === "officer" ? "justify-end" : "justify-start"
+                  )}
                 >
-                  {status === "done" ? "✓" : status === "running" ? <Loader2 className="h-3 w-3 animate-spin" /> : "○"}
-                  {NODE_LABELS[name]}
-                </span>
-              );
-            })}
-            {isStreaming && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-cyan border border-cyan/20">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Streaming from Groq...
-              </span>
-            )}
-          </div>
-        ) : null}
-
-        {/* Streamed Markdown answer */}
-        {streamMarkdown ? (
-          <div className="rounded-md border border-line bg-white p-5">
-            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">
-              <BrainCircuit className="h-3.5 w-3.5 text-cyan" />
-              Credit Copilot Answer
-            </div>
-            <div className="prose-sm max-w-none">
-              <CopilotMarkdown content={streamMarkdown} />
-            </div>
-          </div>
-        ) : null}
-
-        {/* Final brief metadata (only after streaming completes with a final event) */}
-        {brief && !isStreaming ? (
-          <div className="space-y-4">
-            {/* Supporting Evidence */}
-            {brief.cited_internal_inputs.length > 0 ? (
-              <div>
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Supporting Evidence</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {brief.cited_internal_inputs.map((input) => (
-                    <SourceChip key={input} input={input} msmeId={msmeId} />
-                  ))}
+                  <div
+                    className={cn(
+                      "max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm transition-all duration-200",
+                      message.role === "officer"
+                        ? "bg-gradient-to-br from-navy to-[#1a2a4a] text-white rounded-br-md"
+                        : "bg-workspace border border-line text-ink rounded-bl-md"
+                    )}
+                  >
+                    {message.role === "copilot" && (
+                      <div className="mb-2 flex items-center gap-1.5 text-xs text-muted">
+                        <BrainCircuit className="h-3.5 w-3.5 text-cyan" />
+                        <span className="font-semibold text-cyan">Copilot</span>
+                      </div>
+                    )}
+                      <CopilotMarkdown content={message.text} />
+                    {message.response ? (
+                      <div className="mt-3 space-y-2 border-t border-line/50 pt-2">
+                        {message.response.cited_internal_inputs.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {message.response.cited_internal_inputs.map((input) => (
+                              <SourceChip key={input} input={input} msmeId={msmeId} />
+                            ))}
+                          </div>
+                        )}
+                        {message.response.trace.length > 0 && (
+                          <details className="group">
+                            <summary className="flex cursor-pointer items-center gap-1 text-[10px] text-muted hover:text-ink transition-colors">
+                              <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" />
+                              Trace ({message.response.trace.length} steps)
+                            </summary>
+                            <div className="mt-2">
+                              <TraceTimeline trace={message.response.trace} compact />
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            ) : null}
+              ))}
 
-            {/* Assumptions */}
-            {brief.assumptions.length > 0 ? (
-              <div>
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Assumptions</div>
-                <ul className="space-y-1">
-                  {brief.assumptions.map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-xs leading-5 text-muted">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-line" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
+              {/* Loading indicator */}
+              {chatMutation.isPending && (
+                <div className="flex items-start gap-3">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan/10">
+                    <BrainCircuit className="h-3.5 w-3.5 text-cyan" />
+                  </div>
+                  <div className="flex items-center gap-2 rounded-2xl rounded-bl-md bg-workspace border border-line px-4 py-3">
+                    <div className="flex gap-1">
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-line [animation-delay:0ms]" />
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-line [animation-delay:150ms]" />
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-line [animation-delay:300ms]" />
+                    </div>
+                    <span className="text-xs text-muted">Thinking...</span>
+                  </div>
+                </div>
+              )}
 
-            {/* Follow-up Questions */}
-            {brief.follow_up_questions.length > 0 ? (
-              <div>
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Follow-up Questions</div>
-                <ol className="list-decimal space-y-1 pl-5">
-                  {brief.follow_up_questions.map((item) => (
-                    <li key={item} className="text-xs leading-5 text-muted">{item}</li>
-                  ))}
-                </ol>
-              </div>
-            ) : null}
+              <div ref={scrollRef} />
+            </div>
 
-            {/* Recommended Human Action */}
-            {brief.recommended_human_action ? (
-              <div className="rounded-md border border-amber/20 bg-amber/5 p-4">
-                <div className="text-xs font-bold uppercase tracking-wider text-amber mb-2">Recommended Human Action</div>
-                <p className="text-sm leading-6 text-ink">{brief.recommended_human_action}</p>
-              </div>
-            ) : null}
-
-            {/* Analysis Details accordion - collapsed, contains node outputs */}
-            <AnalysisDetailsAccordion brief={brief} />
-
-            {/* Agent Trace */}
-            <TraceAccordion trace={brief.trace} />
+            {/* Input */}
+            <div className="border-t border-line px-5 py-3">
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  ask(chatInput);
+                  inputRef.current?.focus();
+                }}
+                className="flex items-end gap-2"
+              >
+                <div className="relative flex-1">
+                  <input
+                    ref={inputRef}
+                    value={chatInput}
+                    onChange={(event) => setChatInput(event.target.value)}
+                    placeholder="Ask about evidence gaps, risk signals, or human review..."
+                    className="h-11 w-full rounded-xl border border-line bg-workspace px-4 pr-10 text-sm outline-none transition-all duration-200 placeholder:text-muted/60 focus:border-cyan focus:shadow-[0_0_0_2px_rgba(3,105,161,0.1)]"
+                    disabled={chatMutation.isPending}
+                  />
+                  {chatInput.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setChatInput("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink transition-colors"
+                      tabIndex={-1}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={!chatInput.trim() || chatMutation.isPending}
+                  className="h-11 w-11 shrink-0 rounded-xl"
+                >
+                  {chatMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <SendHorizontal className="h-4 w-4" />
+                  )}
+                </Button>
+              </form>
+            </div>
           </div>
         ) : null}
 
-        {streamError ? (
-          <div className="rounded-md border border-danger/20 bg-danger/5 p-3 text-xs">
-            <div className="flex items-center gap-2 font-semibold text-danger"><AlertTriangle className="h-3.5 w-3.5" />Copilot unavailable</div>
-            <p className="mt-1 text-muted">{streamError}</p>
-          </div>
-        ) : null}
+        {/* Brief section */}
+        <div className={cn(
+          "min-h-0 overflow-y-auto transition-all duration-300",
+          chatEnabled ? hasBrief ? "flex-[1] min-h-[120px]" : "flex-1" : "flex-1"
+        )}>
+          <div className="p-5 space-y-4">
+            {/* Stream / Generate button */}
+            <Button
+              variant="outline"
+              size="lg"
+              className={cn(
+                "w-full transition-all duration-200",
+                isStreaming && "border-cyan/50 bg-cyan/5"
+              )}
+              onClick={handleStreamToggle}
+              disabled={providerStatusQuery.isLoading}
+            >
+              {isStreaming ? (
+                <StopCircle className="h-4 w-4 text-danger" />
+              ) : (
+                <Radio className="h-4 w-4 text-cyan" />
+              )}
+              <span>{isStreaming ? "Stop stream" : "Stream decision-support brief"}</span>
+            </Button>
 
-        {!brief && !streamMarkdown && !streamError && !isStreaming ? (
-          <p className="text-xs leading-5 text-muted">Generate or stream a grounded decision-support brief from backend score, prospect, risk, evidence, and transaction-summary inputs.</p>
-        ) : null}
+            {/* Node status badges during streaming */}
+            {isStreaming ? (
+              <div className="flex flex-wrap gap-2 animate-fade-in">
+                {NODE_ORDER.map((name) => (
+                  <AgentStatusBadge key={name} status={nodeStatuses[name]} label={NODE_LABELS[name]} />
+                ))}
+                <AgentStatusBadge status="running" label="Streaming from Groq" />
+              </div>
+            ) : null}
+
+            {/* Streaming indicator (during streaming, before final event) */}
+            {isStreaming && !streamMarkdown && (
+              <div className="flex items-center gap-3 animate-fade-in rounded-lg border border-line/60 bg-workspace p-4">
+                <div className="flex gap-1">
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-cyan [animation-delay:0ms]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-cyan [animation-delay:150ms]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-cyan [animation-delay:300ms]" />
+                </div>
+                <span className="text-xs text-muted">Generating decision-support brief...</span>
+              </div>
+            )}
+
+            {/* Streamed markdown (only from final event) */}
+            {streamMarkdown ? (
+              <Card className="border-line/60 shadow-sm animate-slide-up overflow-hidden">
+                <CardHeader className="border-b border-line/50 bg-gradient-to-r from-cyan/5 to-transparent px-5 py-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-cyan" />
+                    <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted">
+                      Copilot Response
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="px-5 py-4">
+                  <CopilotMarkdown content={streamMarkdown} />
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {/* Brief metadata */}
+            {brief && !isStreaming ? (
+              <div className="animate-slide-up space-y-4">
+                {/* Follow-up Questions */}
+                {brief.follow_up_questions.length > 0 ? (
+                  <div>
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Follow-up Questions</div>
+                    <div className="space-y-1.5">
+                      {brief.follow_up_questions.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => {
+                            setChatInput(item);
+                            inputRef.current?.focus();
+                          }}
+                          className="group flex w-full items-start gap-2 rounded-lg border border-line/60 bg-workspace px-3 py-2 text-left text-xs leading-5 text-muted transition-all duration-150 hover:border-cyan/30 hover:bg-cyan/5 hover:text-ink"
+                        >
+                          <MessageSquareQuote className="mt-0.5 h-3 w-3 shrink-0 text-cyan/60 group-hover:text-cyan" />
+                          <span>{item}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Recommended Human Action */}
+                {brief.recommended_human_action ? (
+                  <ApprovalGate action={brief.recommended_human_action} variant="warning" />
+                ) : null}
+
+                {/* Analysis Details accordion */}
+                <AnalysisDetailsAccordion brief={brief} />
+
+                {/* Agent Trace */}
+                <TraceTimeline trace={brief.trace} />
+              </div>
+            ) : null}
+
+            {/* Error */}
+            {streamError ? (
+              <div className="animate-fade-in rounded-lg border border-danger/20 bg-danger/5 p-3 text-xs">
+                <div className="flex items-center gap-2 font-semibold text-danger">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  Copilot unavailable
+                </div>
+                <p className="mt-1 text-muted">{streamError}</p>
+              </div>
+            ) : null}
+
+            {/* Empty state */}
+            {!chatEnabled && !brief && !streamMarkdown && !streamError && !isStreaming ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-cyan/10 to-navy/10 mb-4">
+                  <BrainCircuit className="h-6 w-6 text-cyan" />
+                </div>
+                <p className="text-sm font-medium text-ink">Stream a grounded brief</p>
+                <p className="mt-1 text-xs text-muted max-w-sm">
+                  Generate a decision-support brief from score, prospect, risk, evidence, and transaction-summary inputs.
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
 function AnalysisDetailsAccordion({ brief }: { brief: CopilotBrief }) {
-  const hasDetails = brief.data_quality_observations || brief.credit_analyst_explanation || brief.prospect_assist_recommendation || brief.risk_investigator_findings || brief.final_lending_brief;
+  const hasDetails =
+    brief.data_quality_observations ||
+    brief.credit_analyst_explanation ||
+    brief.prospect_assist_recommendation ||
+    brief.risk_investigator_findings ||
+    brief.final_lending_brief;
   if (!hasDetails) return null;
+
   return (
-    <details className="rounded-md border border-line bg-surface">
-      <summary className="cursor-pointer px-4 py-2.5 text-xs font-semibold text-muted hover:text-ink transition-colors">
+    <details className="group rounded-lg border border-line bg-surface overflow-hidden">
+      <summary className="flex cursor-pointer items-center gap-2 px-4 py-2.5 text-xs font-semibold text-muted transition-colors hover:text-ink hover:bg-subtle/50">
+        <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
         Analysis Details
       </summary>
       <div className="divide-y divide-line border-t border-line">
         {brief.data_quality_observations ? (
-          <div className="px-4 py-3">
-            <div className="text-xs font-semibold text-muted mb-1">Data Quality Observations</div>
+          <div className="px-4 py-3 transition-colors hover:bg-subtle/30">
+            <div className="mb-1 text-xs font-semibold text-muted">Data Quality Observations</div>
             <p className="text-xs leading-5 text-ink">{brief.data_quality_observations}</p>
           </div>
         ) : null}
         {brief.credit_analyst_explanation ? (
-          <div className="px-4 py-3">
-            <div className="text-xs font-semibold text-muted mb-1">Credit Analyst</div>
+          <div className="px-4 py-3 transition-colors hover:bg-subtle/30">
+            <div className="mb-1 text-xs font-semibold text-muted">Credit Analyst</div>
             <p className="text-xs leading-5 text-ink">{brief.credit_analyst_explanation}</p>
           </div>
         ) : null}
         {brief.prospect_assist_recommendation ? (
-          <div className="px-4 py-3">
-            <div className="text-xs font-semibold text-muted mb-1">Prospect Assist</div>
+          <div className="px-4 py-3 transition-colors hover:bg-subtle/30">
+            <div className="mb-1 text-xs font-semibold text-muted">Prospect Assist</div>
             <p className="text-xs leading-5 text-ink">{brief.prospect_assist_recommendation}</p>
           </div>
         ) : null}
         {brief.risk_investigator_findings ? (
-          <div className="px-4 py-3">
-            <div className="text-xs font-semibold text-muted mb-1">Risk Investigator</div>
+          <div className="px-4 py-3 transition-colors hover:bg-subtle/30">
+            <div className="mb-1 text-xs font-semibold text-muted">Risk Investigator</div>
             <p className="text-xs leading-5 text-ink">{brief.risk_investigator_findings}</p>
           </div>
         ) : null}
@@ -421,49 +461,23 @@ function SourceChip({ input, msmeId }: { input: string; msmeId: string }) {
         href={evidenceFileUrl(msmeId, evidenceId)}
         target="_blank"
         rel="noreferrer"
-        className="inline-flex items-center gap-1 rounded border border-line bg-subtle px-1.5 py-0.5 font-mono text-[10px] text-navy hover:bg-white"
+        className="inline-flex items-center gap-1 rounded-md border border-line/60 bg-subtle/80 px-1.5 py-0.5 font-mono text-[10px] text-navy transition-colors hover:bg-surface hover:border-navy/30"
       >
         {input}
-        <ExternalLink className="h-3 w-3" />
+        <svg width="10" height="10" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+          <path d="M3 2C2.44772 2 2 2.44772 2 3V12C2 12.5523 2.44772 13 3 13H12C12.5523 13 13 12.5523 13 12V8.5C13 8.22386 12.7761 8 12.5 8C12.2239 8 12 8.22386 12 8.5V12H3V3L6.5 3C6.77614 3 7 2.77614 7 2.5C7 2.22386 6.77614 2 6.5 2H3ZM12.8536 2.14645C12.9015 2.19439 12.9377 2.24964 12.9621 2.30861C12.9861 2.36669 12.9996 2.4303 13 2.497L13 2.5V2.50049V5.5C13 5.77614 12.7761 6 12.5 6C12.2239 6 12 5.77614 12 5.5V3.70711L6.85355 8.85355C6.65829 9.04882 6.34171 9.04882 6.14645 8.85355C5.95118 8.65829 5.95118 8.34171 6.14645 8.14645L11.2929 3H9.5C9.22386 3 9 2.77614 9 2.5C9 2.22386 9.77614 2 9.5 2H12.5C12.5678 2 12.6324 2.01349 12.6914 2.03794C12.7504 2.06234 12.8056 2.09851 12.8536 2.14645Z" fill="currentColor" />
+        </svg>
       </a>
     );
   }
   if (isScoreHistory) {
     return (
-      <span className="rounded border border-line bg-subtle px-1.5 py-0.5 font-mono text-[10px] text-muted cursor-default">
+      <span className="cursor-default rounded-md border border-line/60 bg-subtle/80 px-1.5 py-0.5 font-mono text-[10px] text-muted">
         {input}
       </span>
     );
   }
-  return <span className="rounded border border-line bg-subtle px-1.5 py-0.5 font-mono text-[10px] text-muted">{input}</span>;
-}
-
-function TraceAccordion({ trace }: { trace: TraceStep[] }) {
-  if (!trace.length) return null;
-  return (
-    <details className="rounded-md border border-line bg-surface">
-      <summary className="cursor-pointer px-4 py-2.5 text-xs font-semibold text-muted hover:text-ink transition-colors">
-        Agent Trace ({trace.length} steps)
-      </summary>
-      <div className="divide-y divide-line border-t border-line">
-        {trace.map((step) => (
-          <div key={step.step_id} className="px-4 py-3 text-xs">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-semibold text-ink">{step.step_name}</span>
-              <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${step.status === "success" ? "bg-positive/10 text-positive" : "bg-danger/10 text-danger"}`}>
-                {step.status}
-              </span>
-            </div>
-            <div className="text-muted leading-5">{step.notes}</div>
-          </div>
-        ))}
-      </div>
-    </details>
-  );
-}
-
-function parseEvent(event: Event): Record<string, unknown> {
-  return JSON.parse((event as MessageEvent).data) as Record<string, unknown>;
+  return <span className="rounded-md border border-line/60 bg-subtle/80 px-1.5 py-0.5 font-mono text-[10px] text-muted">{input}</span>;
 }
 
 function providerMessage(error: unknown) {

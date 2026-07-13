@@ -3,9 +3,11 @@ from collections.abc import AsyncIterator
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
+from app.agents.context_builder import CopilotContextBuilder
 from app.agents.graph import CreditCopilotGraph
 from app.agents.providers.base import get_provider
 from app.agents.schemas import CopilotBriefPayload, CopilotBriefRequest, CopilotProviderStatus, CopilotStreamEvent, PROMPT_VERSION
+from app.agents.safety import sanitize_copilot_text
 from app.agents.streaming import format_sse
 from app.core.config import get_settings
 from app.schemas.common import utc_now
@@ -13,7 +15,7 @@ from app.schemas.credit_file import CopilotChatRequest, CopilotChatResponse
 from app.services.audit_service import create_audit_event
 from app.services.evidence_service import list_evidence_records
 from app.services.portfolio_service import get_portfolio_cases
-from app.services.score_history_service import get_latest_delta, get_score_movements
+from app.services.score_history_service import get_latest_delta, get_score_movements as get_portfolio_score_movements
 
 router = APIRouter(prefix="/copilot", tags=["copilot"])
 
@@ -21,24 +23,17 @@ router = APIRouter(prefix="/copilot", tags=["copilot"])
 @router.get("/provider/status", response_model=CopilotProviderStatus)
 def get_copilot_provider_status() -> CopilotProviderStatus:
     settings = get_settings()
-    configured = (settings.ai_provider or "").lower()
     groq_configured = bool(settings.groq_api_key)
-    user_facing_ai_enabled = (configured == "groq" and groq_configured)
+    user_facing_ai_enabled = groq_configured
     available_user_modes: list[str] = []
-    if user_facing_ai_enabled:
+    if groq_configured:
         available_user_modes.append("groq")
-    if configured == "disabled" or not configured:
-        available_user_modes.append("disabled")
-    active_provider = configured if configured in {"groq", "disabled"} else ""
+    active_provider = "groq" if groq_configured else "unavailable"
     message: str | None = None
-    if configured == "groq" and not groq_configured:
-        active_provider = "groq_unavailable"
-        message = "Groq provider is not configured. Set GROQ_API_KEY to enable Credit Copilot."
-    elif not configured:
-        active_provider = "not_configured"
-        message = "No AI provider is configured. Set AI_PROVIDER=groq and GROQ_API_KEY to enable Credit Copilot."
+    if not groq_configured:
+        message = "Groq API key is not configured. Set GROQ_API_KEY to enable Credit Copilot."
     return CopilotProviderStatus(
-        configured_provider=configured if configured else "not_configured",
+        configured_provider="groq" if groq_configured else "unavailable",
         groq_configured=groq_configured,
         user_facing_ai_enabled=user_facing_ai_enabled,
         available_user_modes=available_user_modes,
@@ -51,25 +46,24 @@ def get_copilot_provider_status() -> CopilotProviderStatus:
 
 @router.post("/portfolio/chat")
 async def portfolio_chat(payload: CopilotChatRequest, request: Request) -> dict:
-    question = payload.message.strip().lower()
-    cited_inputs = ["portfolio_cases", "score_history", "score_movements", "deterministic_score_outputs"]
-    if "dropped" in question or "drop" in question or "deteriorat" in question:
-        movements = [item for item in get_score_movements(min_delta=1, limit=25).items if item.delta < 0]
-        answer = f"Found {len(movements)} cases with score deterioration in the current monitoring history. Prioritize the largest negative deltas for human review and evidence checks."
-        data = [item.model_dump(mode="json") for item in movements[:10]]
-    elif "human action" in question or "need" in question or "risk" in question:
-        cases = get_portfolio_cases(limit=25, sort="confidence_asc").items
-        flagged = [case for case in cases if case.score.risk_tier.value in {"elevated", "high"} or case.score.data_confidence < 70]
-        answer = f"Found {len(flagged)} current cases needing officer attention based on risk tier, low confidence, or missing evidence."
-        data = [case.model_dump(mode="json") for case in flagged[:10]]
-    elif "compare" in question:
-        cases = get_portfolio_cases(limit=2, sort="prospect_score_desc").items
-        answer = "Comparison uses existing deterministic score, Prospect Assist, confidence, and risk-tier outputs only."
-        data = [case.model_dump(mode="json") for case in cases]
-    else:
-        summary = get_score_movements(min_delta=0, limit=10).items
-        answer = "Portfolio Copilot summarized current monitoring movements from backend score history. It does not calculate scores or make final lending decisions."
-        data = [item.model_dump(mode="json") for item in summary]
+    settings = get_settings()
+    mode = payload.mode or settings.ai_provider or ""
+    if not mode or mode == "":
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "COPILOT_PROVIDER_UNAVAILABLE", "message": "No AI provider is configured. Set AI_PROVIDER=groq and GROQ_API_KEY to enable Credit Copilot."},
+        )
+    provider = get_provider(payload.mode)
+
+    cases_data = [c.model_dump(mode="json") for c in get_portfolio_cases(limit=50, sort="prospect_score_desc").items]
+    movements_data = get_portfolio_score_movements(limit=50)
+    portfolio_data = {
+        "cases": cases_data,
+        "movements": movements_data if isinstance(movements_data, list) else [m.model_dump(mode="json") for m in movements_data.items] if hasattr(movements_data, "items") else [],
+        "total_cases": len(cases_data),
+    }
+    cited_inputs = ["portfolio_cases", "score_history", "score_movements"]
+    answer = await provider.portfolio_chat(payload.message.strip(), portfolio_data)
     create_audit_event("copilot_portfolio_chat_generated", None, {"success": True, "cited_inputs": cited_inputs}, request_id=request.state.request_id)
     return {
         "answer": answer,
@@ -78,7 +72,7 @@ async def portfolio_chat(payload: CopilotChatRequest, request: Request) -> dict:
         "recommended_human_action": "Review cited cases, verify evidence gaps, and route material changes through the bank officer workflow.",
         "cited_internal_inputs": cited_inputs,
         "decision_support_only": True,
-        "data": data,
+        "data": {"cases": cases_data[:5], "movements_count": len(portfolio_data["movements"])},
         "created_at": utc_now(),
     }
 
@@ -114,34 +108,36 @@ async def chat_with_copilot(msme_id: str, payload: CopilotChatRequest, request: 
             request_id=request.state.request_id,
         )
         raise
-    graph = CreditCopilotGraph(provider)
-    brief = await graph.generate_brief(msme_id, request_id=request.state.request_id)
-    question = payload.message.strip()
-    answer = _chat_answer(question, brief, msme_id)
+    context = CopilotContextBuilder().build(msme_id)
+    answer = await provider.chat(payload.message.strip(), context)
+    answer = sanitize_copilot_text(answer)
+    cited = _chat_citations(msme_id, context.cited_internal_inputs)
     create_audit_event(
         "copilot_chat_generated",
         msme_id,
         {
-            "provider": brief.provider,
-            "model": brief.model,
-            "prompt_version": brief.prompt_version,
+            "provider": provider.provider_name,
+            "model": provider.model_name,
+            "prompt_version": PROMPT_VERSION,
             "success": True,
         },
         request_id=request.state.request_id,
     )
     return CopilotChatResponse(
-        answer=answer,
+        answer_markdown=answer,
         decision_support_only=True,
-        cited_internal_inputs=_chat_citations(msme_id, brief.cited_internal_inputs),
-        trace=brief.trace if payload.include_trace else [],
-        provider=brief.provider,
-        model=brief.model,
+        cited_internal_inputs=cited,
+        trace=[],
+        provider=provider.provider_name,
+        model=provider.model_name,
         created_at=utc_now(),
     )
 
 
 @router.post("/{msme_id}/explain-delta")
 async def explain_delta(msme_id: str, request: Request) -> dict:
+    from app.services.score_history_service import get_latest_delta
+
     entry = get_latest_delta(msme_id)
     if entry is None:
         raise HTTPException(status_code=404, detail={"code": "SCORE_DELTA_NOT_FOUND", "message": "No score history delta is available for this MSME."})
@@ -200,49 +196,6 @@ def _stream_response(msme_id: str, request: Request, mode: str | None) -> Stream
         event_generator(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
-
-
-def _chat_answer(question: str, brief: CopilotBriefPayload, msme_id: str) -> str:
-    lower = question.lower()
-    evidence = list_evidence_records(msme_id)
-    delta = get_latest_delta(msme_id)
-    evidence_blockers = [record for record in evidence if record.status in {"missing", "partial", "stale"}]
-    evidence_text = "; ".join(f"{record.id} ({record.document_name}: {record.status})" for record in evidence_blockers[:3]) or "No blocking evidence record is open in the seeded evidence set."
-    delta_text = (
-        f" Latest score delta {delta.id}: {delta.previous_score} -> {delta.new_score} ({delta.delta}); changed features: {', '.join(delta.changed_features) or 'not available'}."
-        if delta
-        else " No score delta is recorded yet; start monitoring or inject an event to create one."
-    )
-    if "rm" in lower or "follow" in lower or "note" in lower:
-        focus = (
-            "RM follow-up note: Please request the open evidence items, verify recent turnover and collection behavior, "
-            "and confirm whether the requested working-capital need matches current order or receivable activity. "
-            f"Open evidence: {evidence_text}. Use this context: {brief.prospect_assist_recommendation}"
-        )
-    elif "change" in lower or "delta" in lower or "score change" in lower:
-        focus = f"Score change explanation:{delta_text} Cite the monitoring event and score history before routing the case."
-    elif "block" in lower or "missing" in lower or "evidence" in lower or "document" in lower:
-        focus = f"Primary blocker and evidence request: {brief.data_quality_observations} Cited evidence records: {evidence_text}."
-    elif "confidence" in lower or "signal" in lower:
-        focus = (
-            f"Confidence driver: {brief.data_quality_observations} "
-            "The confidence view should be read separately from the deterministic score; Copilot is only explaining the returned inputs."
-        )
-    elif "risk" in lower or "verify" in lower or "human review" in lower:
-        focus = f"Pre-review verification: {brief.risk_investigator_findings}"
-    elif "score" in lower or "branch manager" in lower:
-        focus = (
-            f"Branch-manager explanation: {brief.credit_analyst_explanation} "
-            "The score, risk tier, and suggested range are deterministic outputs, not Copilot calculations."
-        )
-    else:
-        focus = brief.summary
-    return (
-        f"{focus}\n\n"
-        f"Assumptions: {'; '.join(brief.assumptions[:2])}\n\n"
-        f"Recommended human action: {brief.recommended_human_action}\n\n"
-        "Decision-support only: this Copilot answer explains internal score, prospect, risk, and evidence inputs for human review. It does not issue a final credit decision."
     )
 
 

@@ -1,0 +1,21 @@
+LendSignal 360 — Evidence Preview
+================================
+Borrower: PixelKart Supplies
+MSME ID: msme_003
+Evidence ID: ev_msme_003_bureau_report
+Source: bureau_report
+Status: available
+
+--- Demo Content ---
+Evidence document
+Borrower: PixelKart Supplies
+Evidence ID: ev_msme_003_bureau_report
+Status: available
+
+Demo document content generated from synthetic profile metadata. No OCR, external registry lookup, or real customer data is used.
+Source mapping: credit_file:msme_003 -> evidence:ev_msme_003_bureau_report -> score_component:repayment_stress
+
+
+This document was generated from synthetic profile metadata.
+No OCR, external registry lookup, or real customer data is used.
+Generated at: 2026-07-08T11:35:11.515402+00:00

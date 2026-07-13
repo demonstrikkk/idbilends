@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import audit, copilot, credit_file, demo, health, market_overlays, monitoring, msmes, portfolio, prospects, score_history, scores
+from app.api.routes import audit, copilot, credit_file, demo, health, market_overlays, monitoring, msmes, portfolio, prospects, score_history, scores, scoring
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.core.security import RequestIdMiddleware
@@ -38,6 +38,7 @@ def create_app() -> FastAPI:
         portfolio.insights_router,
         portfolio.model_monitor_router,
         portfolio.command_center_router,
+        scoring.router,
     ]:
         app.include_router(router)
     return app

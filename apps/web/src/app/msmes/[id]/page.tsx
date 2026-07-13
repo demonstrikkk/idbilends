@@ -10,7 +10,7 @@ import { AuditTimeline } from "@/components/governance/AuditTimeline";
 import { FactorBarList } from "@/components/ui/Cockpit";
 import { DataConfidencePill, RecommendationPill, RiskTierPill, SeverityPill } from "@/components/ui/Pills";
 import { ErrorState, LoadingState } from "@/components/ui/State";
-import { getCreditFile } from "@/lib/api/credit-file";
+import { evidenceFileUrl, getCreditFile } from "@/lib/api/credit-file";
 import { formatInr, formatPercent, titleize } from "@/lib/formatters";
 import type { CreditFile } from "@/lib/schemas/credit-file";
 import { cn } from "@/lib/utils";
@@ -241,21 +241,37 @@ function DocumentsSection({ file }: { file: CreditFile }) {
   return (
     <div className="rounded-md border border-line bg-surface shadow-cockpit">
       <div className="divide-y divide-line">
-        {file.evidence_status.map((item) => (
-          <div key={item.source_type} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4">
-            <div className="flex-1">
-              <div className="font-semibold text-ink">{item.source_label}</div>
-              <div className="mt-1 text-xs text-muted">{item.why_it_matters}</div>
-              <div className="mt-2 text-xs font-medium text-amber">Score Component: {titleize(item.related_score_component)}</div>
+        {file.evidence_status.map((item) => {
+          const matchingRecord = file.evidence_records.find((r) => r.source_type === item.source_type);
+          return (
+            <div key={item.source_type} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className={cn("inline-block h-2 w-2 rounded-full shrink-0", item.status === "available" ? "bg-positive" : item.status === "partial" ? "bg-amber" : "bg-line")} />
+                  <div className="font-semibold text-ink">{item.source_label}</div>
+                </div>
+                <div className="mt-1 text-xs text-muted">{item.why_it_matters}</div>
+                <div className="mt-1.5 flex flex-wrap gap-3 text-xs">
+                  <span className="font-medium text-amber">Score: {titleize(item.related_score_component)}</span>
+                  {matchingRecord && <span className="text-muted">{matchingRecord.extracted_signals.length} extracted fields</span>}
+                  {matchingRecord?.extraction_status && <span className="text-muted">Extraction: {titleize(matchingRecord.extraction_status)}</span>}
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <div className={cn("text-sm font-medium", item.status === "available" ? "text-positive" : item.status === "partial" ? "text-amber" : "text-muted")}>{titleize(item.status)}</div>
+                {item.action_enabled ? (
+                  <a href={matchingRecord ? evidenceFileUrl(file.profile.id, matchingRecord.id) : "#"} target="_blank" rel="noreferrer" className="rounded border border-line bg-subtle px-4 py-1.5 text-xs font-semibold text-ink hover:bg-line">
+                    {item.action_label}
+                  </a>
+                ) : (
+                  <span title={item.disabled_reason ?? "Evidence not available"} className="cursor-default rounded border border-line bg-subtle/50 px-4 py-1.5 text-xs text-muted">
+                    {item.action_label}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="flex shrink-0 items-center gap-4">
-              <div className="text-sm font-medium text-ink">{titleize(item.status)}</div>
-              <button type="button" disabled={!item.action_enabled} title={item.disabled_reason ?? item.action_label} className="rounded border border-line bg-subtle px-4 py-1.5 text-xs font-semibold text-ink hover:bg-line disabled:cursor-not-allowed disabled:opacity-50">
-                {item.action_label}
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

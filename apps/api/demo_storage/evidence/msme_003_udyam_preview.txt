@@ -1,0 +1,21 @@
+LendSignal 360 — Evidence Preview
+================================
+Borrower: PixelKart Supplies
+MSME ID: msme_003
+Evidence ID: ev_msme_003_udyam
+Source: udyam
+Status: available
+
+--- Demo Content ---
+Udyam certificate mock record
+Borrower: PixelKart Supplies
+Evidence ID: ev_msme_003_udyam
+Status: available
+
+Demo document content generated from synthetic profile metadata. No OCR, external registry lookup, or real customer data is used.
+Source mapping: credit_file:msme_003 -> evidence:ev_msme_003_udyam -> score_component:identity_verification, compliance_discipline
+
+
+This document was generated from synthetic profile metadata.
+No OCR, external registry lookup, or real customer data is used.
+Generated at: 2026-07-08T11:35:11.512211+00:00

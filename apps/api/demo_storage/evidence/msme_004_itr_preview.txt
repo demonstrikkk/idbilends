@@ -1,0 +1,21 @@
+LendSignal 360 — Evidence Preview
+================================
+Borrower: Sankalp GeM Office Needs
+MSME ID: msme_004
+Evidence ID: ev_msme_004_itr
+Source: itr
+Status: missing
+
+--- Demo Content ---
+ITR evidence request note
+Borrower: Sankalp GeM Office Needs
+Evidence ID: ev_msme_004_itr
+Status: missing
+
+Demo document content generated from synthetic profile metadata. No OCR, external registry lookup, or real customer data is used.
+Source mapping: credit_file:msme_004 -> evidence:ev_msme_004_itr -> score_component:income_verification, data_quality
+
+
+This document was generated from synthetic profile metadata.
+No OCR, external registry lookup, or real customer data is used.
+Generated at: 2026-07-08T11:55:03.447691+00:00

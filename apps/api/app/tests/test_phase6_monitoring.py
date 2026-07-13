@@ -39,6 +39,18 @@ def test_market_overlay_keeps_policy_score_separate():
     assert "Policy score is not rewritten" in " ".join(body["trace"])
 
 
+def test_manual_event_response_includes_before_after_values():
+    seed = client.post("/demo/seed", json={"reset": True, "seed": 42, "profile_count": 9})
+    assert seed.status_code == 200
+    manual = client.post("/monitoring/events/manual", json={"msme_id": "msme_001", "event_type": "bounce_event_recorded"})
+    assert manual.status_code == 200
+    body = manual.json()
+    assert body["event"]["feature_changes"]
+    assert "bounce_count_6m" in body["event"]["feature_changes"]
+    assert "score_history" in body
+    assert body["score_history"]["event_id"] == body["event"]["id"]
+
+
 def test_monitoring_status_and_websocket_connect():
     response = client.get("/monitoring/status")
     assert response.status_code == 200

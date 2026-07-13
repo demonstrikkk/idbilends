@@ -45,13 +45,28 @@ Avoid:
 
 ## 3. Navigation
 
-Primary nav:
+Primary entry:
 
-- Dashboard
-- MSMEs
-- Governance
+- Command Center (1000-case triage, search, filters, preview)
 
-For MVP, Risk Intelligence and Credit Copilot should be first-class sections within the MSME detail page, not separate top-level pages that would require standalone APIs beyond the current contract.
+Secondary pages:
+
+- Dashboard (portfolio summary, risk distribution, prospect rankings)
+- Case Inbox (laned cases needing officer action)
+- MSMEs (credit file register)
+- Portfolio (aggregate portfolio signals)
+- Monitoring (live synthetic monitoring)
+- Credit Copilot (case-aware chat)
+- Data Room (evidence records)
+- Evidence Map (source-to-underwriting trace)
+- Watchlist
+- Alerts
+- Governance (provider mode, audit, rule version, health)
+- Policy Center
+- Model Monitor
+- Reports
+- Data Insights
+- Data Dictionary
 
 ## 4. Dashboard
 
@@ -100,21 +115,22 @@ Score row:
   - Data confidence
   - Suggested credit range
   ↓
-Tabs/sections:
-  - Overview
-  - Financial Health
-  - Prospect Readiness
-  - Risk Intelligence
-  - Credit Copilot
-  - Audit/Governance
+Sections:
+  - Credit Posture (score, tier, confidence, suggested range, recommended action)
+  - Evidence Records (status per document type, file preview)
+  - Credit Copilot (chat, brief generation, streaming, trace)
+  - Risk Intelligence (early-warning triggers, anomalies)
+  - Audit Trail (score generations, copilot runs, monitoring events)
 ```
 
 API mapping for this page:
 
-- `GET /msmes/{id}` for profile, financial snapshot, and documents
-- `POST /scores/{id}/generate` for score, tier, confidence, warnings, and calculation trace
-- `GET /prospects/{id}/signals` for prospect readiness
-- `POST /copilot/{id}/brief` for Credit Copilot output
+- `GET /credit-file/{id}` for aggregate credit bundle (profile, score, evidence, transaction summary, risk, audit)
+- `GET /credit-file/{id}/evidence` for evidence records
+- `GET /credit-file/{id}/evidence-map` for source-to-underwriting mapping
+- `POST /copilot/{id}/brief` for Credit Copilot brief generation
+- `POST /copilot/{id}/chat` for natural-language questions
+- `POST /copilot/{id}/explain-delta` for score-delta explanation
 - `GET /audit/{id}` for audit timeline
 
 ## 6. Score panel
@@ -176,16 +192,20 @@ Must show:
 
 Must show:
 
-- Generate brief button
-- summary
-- executive summary
+- Generate brief button (supports streaming and non-streaming modes)
+- Chat input for natural-language questions
+- Explain-delta triggering
+- summary and executive summary
 - final lending brief
 - follow-up questions
 - assumptions
 - recommended human action
 - confidence badge
+- agent node status badges (pending/running/done/error with animation)
+- approval gate for brief generation
+- tool call cards showing cited internal inputs
 - decision-support disclaimer
-- trace accordion
+- trace timeline with per-node duration
 
 ## 11. Governance page
 
@@ -202,6 +222,8 @@ API mapping for governance:
 
 - `GET /health`
 - `GET /ready`
+- `GET /copilot/provider/status`
+- `GET /scoring/weight-profiles`
 - `GET /audit/{id}` for the selected MSME context in MVP
 
 ## 12. Empty/loading/error states

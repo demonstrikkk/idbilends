@@ -283,8 +283,8 @@ def _top_blocker(case: PortfolioCase) -> str:
         trigger = case.score.early_warning_triggers[0]
         return f"{trigger.label}: {trigger.condition}"
     if case.score.data_confidence < 75:
-        return f"Data confidence is {case.score.data_confidence}; verify bank, GST-like, and bureau-like evidence before human review."
-    return "No blocking evidence gap in the latest deterministic score output."
+        return f"Data confidence {case.score.data_confidence}% (score {case.score.score}, tier {case.score.risk_tier.value}) limits reliable scoring. Verify bank statement, GST returns, and bureau evidence before human review."
+    return f"Score {case.score.score} (tier {case.score.risk_tier.value}, confidence {case.score.data_confidence}%). No blocking evidence gap in deterministic output."
 
 
 def _specific_action(case: PortfolioCase) -> str:

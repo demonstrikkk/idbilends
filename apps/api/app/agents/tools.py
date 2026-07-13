@@ -1,3 +1,4 @@
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -51,11 +52,25 @@ ALLOWLIST: dict[str, Callable[..., Any]] = {
 }
 
 
+MAX_RETRIES = 2
+RETRY_DELAY_MS = [100, 300]
+
 def execute_tool(name: str, *args: Any, **kwargs: Any) -> Any:
     tool = ALLOWLIST.get(name)
     if not tool:
         raise HTTPException(status_code=403, detail={"code": "COPILOT_TOOL_DENIED", "message": f"Tool '{name}' is not allowlisted."})
-    return tool(*args, **kwargs)
+    last_error = None
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            return tool(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            last_error = exc
+            if attempt < MAX_RETRIES:
+                delay = RETRY_DELAY_MS[attempt] / 1000.0
+                time.sleep(delay)
+    raise HTTPException(status_code=503, detail={"code": "TOOL_UNAVAILABLE", "message": f"Tool '{name}' failed after {MAX_RETRIES} retries: {last_error}"})
 
 
 def get_langchain_tools() -> list[Any]:

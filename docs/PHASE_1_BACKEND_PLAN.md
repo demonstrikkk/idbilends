@@ -1,4 +1,4 @@
-# Phase 1 Backend Plan
+# Phase 1 Backend Plan — HISTORICAL (completed)
 
 ## Objective
 

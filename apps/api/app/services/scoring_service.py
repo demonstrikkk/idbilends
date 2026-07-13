@@ -197,7 +197,7 @@ def generate_score(msme_id: str, persist: bool = True, include_trace: bool = Tru
     suggested_min = _round_50000(suggested_max * 0.75)
 
     recommendation = _recommendation(score, data_confidence, suspicious_spike)
-    action = _human_action(recommendation, tier, warnings)
+    action = _human_action(recommendation, tier, warnings, score, data_confidence)
     assert not any(word in action.lower() for word in FORBIDDEN_FINAL_WORDS)
 
     output = ScoreOutputSchema(
@@ -241,15 +241,15 @@ def _recommendation(score: int, confidence: int, suspicious_spike: bool) -> Reco
     return RecommendationCategory.not_recommended_without_rework
 
 
-def _human_action(recommendation: RecommendationCategory, tier: RiskTier, warnings: list[str]) -> str:
+def _human_action(recommendation: RecommendationCategory, tier: RiskTier, warnings: list[str], score: int = 0, confidence: int = 0) -> str:
     if recommendation == RecommendationCategory.insufficient_data:
-        return "Request missing documents and complete human review before any credit discussion."
+        return f"Score {score} with data confidence {confidence}% is too low for any credit action. Request missing or stale evidence (bank statement, GST returns, bureau report, ITR) to enable deterministic scoring."
     if recommendation == RecommendationCategory.not_recommended_without_rework:
-        return "Require business rework, document verification, and senior human review before considering exposure."
+        return f"Score {score} (risk tier {tier.value}) with confidence {confidence}%. Require senior human review of repayment stress (bounce count, EMI-to-revenue ratio) and evidence gaps before any credit discussion."
     if recommendation == RecommendationCategory.consider_lower_limit:
-        return "Consider a lower working-capital limit only after verifying risk triggers and repayment capacity."
+        return f"Score {score} (risk tier {tier.value}) with confidence {confidence}%. Consider a lower working-capital limit after verifying risk triggers: bounce count, buyer concentration, and invoice delay."
     if warnings:
-        return "Consider a moderated working-capital limit after resolving document and signal verification items."
+        return f"Score {score} (risk tier {tier.value}) with confidence {confidence}%. Resolve evidence items ({'; '.join(warnings[:2])}) and verify signal consistency before offering a moderated working-capital limit."
     if tier in {RiskTier.very_low, RiskTier.moderate_low}:
-        return "Consider a working-capital review with standard document verification and policy checks."
-    return "Route for detailed human credit review with focus on repayment stress and data quality."
+        return f"Score {score} (risk tier {tier.value}) with confidence {confidence}%. Conduct standard document verification (bank statement, GST) and policy checks before proceeding with a working-capital review."
+    return f"Score {score} (risk tier {tier.value}) with confidence {confidence}%. Route for detailed human credit review with focus on repayment stress (EMI-to-revenue, bounce behavior) and data quality (missing or partial evidence)."

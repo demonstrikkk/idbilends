@@ -1,4 +1,4 @@
-# Phase 3 Credit Copilot Plan
+# Phase 3 Credit Copilot Plan — HISTORICAL (completed)
 
 ## Objective
 

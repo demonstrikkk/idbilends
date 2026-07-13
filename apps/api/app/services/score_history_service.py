@@ -117,12 +117,16 @@ def _reasons(score: ScoreOutputSchema, previous: ScoreOutputSchema | None, chang
             )
         ]
     component = changed_components[0] if changed_components else "score"
+    previous_points = {item.component: item.awarded_points for item in (previous.calculation_trace or [])}
+    current_points = {item.component: item.awarded_points for item in (score.calculation_trace or [])}
+    before_val = previous_points.get(component, "N/A")
+    after_val = current_points.get(component, "N/A")
     return [
         ScoreChangeReason(
             code=f"{component}_changed",
-            label=f"{component.replace('_', ' ').title()} changed",
+            label=f"{component.replace('_', ' ').title()} changed from {before_val} to {after_val}",
             direction=direction,
-            detail="Deterministic component points changed after borrower features were recomputed.",
+            detail=f"{component.replace('_', ' ').title()} awarded points changed from {before_val} to {after_val}, contributing to overall score {direction} from {previous.score} to {score.score}." if previous else f"{component.replace('_', ' ').title()} points: {after_val}, contributing to score {score.score}.",
             source_fields=[component],
         )
     ]

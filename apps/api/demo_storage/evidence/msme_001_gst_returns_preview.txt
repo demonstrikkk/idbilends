@@ -1,0 +1,21 @@
+LendSignal 360 — Evidence Preview
+================================
+Borrower: Aarav Precision Tools
+MSME ID: msme_001
+Evidence ID: ev_msme_001_gst_returns
+Source: gst_returns
+Status: partial
+
+--- Demo Content ---
+GST-like turnover summary
+Borrower: Aarav Precision Tools
+Evidence ID: ev_msme_001_gst_returns
+Status: partial
+
+Demo document content generated from synthetic profile metadata. No OCR, external registry lookup, or real customer data is used.
+Source mapping: credit_file:msme_001 -> evidence:ev_msme_001_gst_returns -> score_component:compliance_discipline, revenue_quality
+
+
+This document was generated from synthetic profile metadata.
+No OCR, external registry lookup, or real customer data is used.
+Generated at: 2026-07-08T11:08:41.433276+00:00

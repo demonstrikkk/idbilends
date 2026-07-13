@@ -58,3 +58,12 @@ Read:
 - docs/UI_UX_SPEC.md
 - docs/DEMO_STRATEGY.md
 - docs/AGENTIC_AI_DESIGN.md
+
+## Phase 6: Live monitoring and portfolio aggregation
+Read:
+- docs/ARCHITECTURE.md
+- docs/API_CONTRACTS.md
+- docs/SCORING_DESIGN.md
+- docs/LIVE_MONITORING_DESIGN.md
+
+Do not introduce real-time production infrastructure; simulation is sufficient for demo.

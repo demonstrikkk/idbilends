@@ -14,11 +14,14 @@ class Settings(BaseSettings):
     cors_origins: str = Field(default="http://localhost:3000", alias="CORS_ORIGINS")
     ai_provider: str = Field(default="", alias="AI_PROVIDER")
     groq_api_key: str = Field(default="", alias="GROQ_API_KEY")
-    groq_model_stream: str = Field(default="llama-3.3-70b-versatile", alias="GROQ_MODEL_STREAM")
-    groq_model_structured: str = Field(default="llama-3.3-70b-versatile", alias="GROQ_MODEL_STRUCTURED")
+    groq_model_stream: str = Field(default="openai/gpt-oss-120b", alias="GROQ_MODEL_STREAM")
+    groq_model_structured: str = Field(default="openai/gpt-oss-120b", alias="GROQ_MODEL_STRUCTURED")
     groq_temperature: float = Field(default=0.2, alias="GROQ_TEMPERATURE")
     groq_max_tokens: int = Field(default=1800, alias="GROQ_MAX_TOKENS")
     copilot_streaming_enabled: bool = Field(default=True, alias="COPILOT_STREAMING_ENABLED")
+    groq_rate_limit_enabled: bool = Field(default=True, alias="GROQ_RATE_LIMIT_ENABLED")
+    groq_tpm_limit: int = Field(default=6000, alias="GROQ_TPM_LIMIT")
+    groq_rpm_limit: int = Field(default=30, alias="GROQ_RPM_LIMIT")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
     model_config = SettingsConfigDict(

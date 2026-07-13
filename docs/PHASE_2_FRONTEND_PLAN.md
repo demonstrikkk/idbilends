@@ -1,4 +1,4 @@
-# Phase 2 Frontend Plan
+# Phase 2 Frontend Plan — HISTORICAL (completed)
 
 ## Objective
 

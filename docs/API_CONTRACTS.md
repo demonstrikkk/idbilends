@@ -19,10 +19,10 @@ The frontend must not calculate scores. It must consume score outputs from the b
 Local:
 
 ```txt
-http://localhost:8000/api/v1
+http://localhost:8000
 ```
 
-If MVP starts unversioned, keep route naming compatible with future `/api/v1`.
+Routes are currently unversioned. Naming is compatible with a future `/api/v1` prefix.
 
 ## 3. Common response metadata
 
@@ -515,7 +515,203 @@ Response 200:
 }
 ```
 
-## 12. Security behavior
+## 12. Credit File
+
+### GET /credit-file/{msme_id}
+
+Purpose:
+
+Return aggregate credit file bundle for a single MSME.
+
+Response 200:
+
+```json
+{
+  "msme_id": "msme_001",
+  "profile": { ... },
+  "latest_score": { ... },
+  "latest_prospect_signal": { ... },
+  "evidence": [ ... ],
+  "transaction_summary": { ... },
+  "risk_factors": [ ... ],
+  "recent_audit_events": [ ... ]
+}
+```
+
+### GET /credit-file/{msme_id}/evidence-map
+
+Purpose:
+
+Return source-to-underwriting evidence traces linking source data through derived signals to lending questions.
+
+### GET /credit-file/{msme_id}/transaction-summary
+
+Purpose:
+
+Return derived transaction summary for Copilot consumption.
+
+## 13. Evidence
+
+### GET /credit-file/{msme_id}/evidence
+
+List evidence records for an MSME.
+
+### POST /credit-file/{msme_id}/evidence/upload
+
+Upload a new evidence record.
+
+### GET /credit-file/{msme_id}/evidence/{evidence_id}
+
+Get single evidence record detail.
+
+### GET /credit-file/{msme_id}/evidence/{evidence_id}/file
+
+Get evidence file content for browser preview.
+
+### PATCH /credit-file/{msme_id}/evidence/{evidence_id}/status
+
+Update evidence verification status.
+
+## 14. Case Inbox
+
+### GET /case-inbox
+
+Purpose:
+
+Return cases grouped by inbox lanes requiring officer action.
+
+## 15. Command Center
+
+### GET /command-center/cases
+
+Purpose:
+
+Return 1000-case triage view with facets, filters, saved views, pagination, score deltas, blockers, and recommended human actions.
+
+Query params:
+
+| Param | Type | Description |
+|---|---|---|
+| search | string | Search business/branch/zone |
+| risk_tier | string | Filter |
+| segment | string | Filter |
+| zone | string | Filter |
+| confidence_band | string | low/medium/high |
+| saved_view | string | Named filter preset |
+| sort | string | score_delta_desc, score_delta_asc, score_desc, score_asc, risk_desc, confidence_asc |
+| limit | int | Default 25 |
+| offset | int | Default 0 |
+
+## 16. Score History
+
+### GET /score-history/{msme_id}
+
+Return paginated score snapshot history for an MSME.
+
+### GET /score-history/{msme_id}/latest-delta
+
+Return latest score delta and direction.
+
+### GET /monitoring/score-movements
+
+Return aggregate score movements across all monitored MSMEs.
+
+## 17. Monitoring
+
+### POST /monitoring/start
+
+Start a live monitoring simulation session.
+
+### POST /monitoring/stop
+
+Stop the active monitoring session.
+
+### GET /monitoring/status
+
+Return current monitoring session status.
+
+### GET /monitoring/events
+
+Return live monitoring events.
+
+### POST /monitoring/events/manual
+
+Inject a manual monitoring event.
+
+### GET /monitoring/live-cases
+
+Return cases with live monitoring data.
+
+### WS /ws/monitoring
+
+WebSocket endpoint for real-time monitoring event push.
+
+## 18. Market Overlays
+
+### GET /market-overlays
+
+Return available market overlay definitions.
+
+### POST /market-overlays/simulate
+
+Simulate a market overlay impact on a given MSME score.
+
+Response 200:
+
+```json
+{
+  "msme_id": "msme_001",
+  "policy_score": 78,
+  "overlay_adjustment": -3,
+  "adjusted_score": 75,
+  "overlay_applied": "sector_downturn",
+  "decision_support_only": true
+}
+```
+
+## 19. Portfolio Aggregation
+
+These endpoints derive current-snapshot analytics from existing services without fabricating history.
+
+### GET /portfolio/cases
+
+### GET /portfolio/summary
+
+### GET /watchlist
+
+### GET /alerts
+
+### GET /insights/portfolio
+
+### GET /model-monitor/snapshot
+
+## 20. Scoring Weights
+
+### GET /scoring/weight-profiles
+
+Return available scoring weight profile definitions.
+
+## 21. Copilot Chat
+
+### POST /copilot/{msme_id}/chat
+
+Purpose:
+
+Ask a natural-language question about an MSME. Returns a decision-support answer grounded in the credit file.
+
+### POST /copilot/{msme_id}/explain-delta
+
+Purpose:
+
+Generate an explanation for a score delta.
+
+### POST /copilot/portfolio/chat
+
+Purpose:
+
+Ask a portfolio-level question across all MSMEs.
+
+## 22. Security behavior
 
 Every endpoint must:
 

@@ -8,7 +8,8 @@ export const traceStepSchema = z.object({
   input_refs: z.array(z.string()),
   output_ref: z.string().nullable(),
   error_code: z.string().nullable(),
-  notes: z.string().nullable()
+  notes: z.string().nullable(),
+  duration_ms: z.number().int().nullable().optional()
 });
 
 export const copilotBriefSchema = z.object({

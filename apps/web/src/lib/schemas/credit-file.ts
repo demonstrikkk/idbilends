@@ -35,6 +35,9 @@ export const evidenceStatusItemSchema = z.object({
 export const evidenceRecordSchema = z.object({
   id: z.string(),
   msme_id: z.string(),
+  evidence_type: z.string(),
+  title: z.string(),
+  source: z.string(),
   source_type: z.string(),
   document_name: z.string(),
   status: z.string(),
@@ -49,9 +52,15 @@ export const evidenceRecordSchema = z.object({
     source_mapping: z.string(),
     confidence: z.number()
   })),
+  extraction_status: z.string(),
+  confidence_impact: z.string(),
+  risk_impact: z.string(),
   related_score_components: z.array(z.string()),
+  lending_question: z.string(),
   source_mapping: z.array(z.string()),
   uploaded_by: z.string(),
+  reviewed_at: z.string().nullable().optional(),
+  audit_event_id: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string()
 });
@@ -111,12 +120,17 @@ export const caseInboxResponseSchema = z.object({
 });
 
 export const copilotChatResponseSchema = z.object({
-  answer: z.string(),
+  answer_markdown: z.string(),
   decision_support_only: z.literal(true),
   cited_internal_inputs: z.array(z.string()),
   trace: z.array(traceStepSchema),
   provider: z.string(),
   model: z.string(),
+  prompt_version: z.string(),
+  summary: z.string(),
+  recommended_human_action: z.string(),
+  assumptions: z.array(z.string()),
+  follow_up_questions: z.array(z.string()),
   created_at: z.string()
 });
 

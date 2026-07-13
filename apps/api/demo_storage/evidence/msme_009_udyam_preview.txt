@@ -1,0 +1,21 @@
+LendSignal 360 — Evidence Preview
+================================
+Borrower: Nova Wholesale Links
+MSME ID: msme_009
+Evidence ID: ev_msme_009_udyam
+Source: udyam
+Status: available
+
+--- Demo Content ---
+Udyam certificate mock record
+Borrower: Nova Wholesale Links
+Evidence ID: ev_msme_009_udyam
+Status: available
+
+Demo document content generated from synthetic profile metadata. No OCR, external registry lookup, or real customer data is used.
+Source mapping: credit_file:msme_009 -> evidence:ev_msme_009_udyam -> score_component:identity_verification, compliance_discipline
+
+
+This document was generated from synthetic profile metadata.
+No OCR, external registry lookup, or real customer data is used.
+Generated at: 2026-07-08T11:27:48.110334+00:00

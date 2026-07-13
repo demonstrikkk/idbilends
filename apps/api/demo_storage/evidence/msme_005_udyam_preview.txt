@@ -1,0 +1,21 @@
+LendSignal 360 — Evidence Preview
+================================
+Borrower: Pragati Design Services
+MSME ID: msme_005
+Evidence ID: ev_msme_005_udyam
+Source: udyam
+Status: available
+
+--- Demo Content ---
+Udyam certificate mock record
+Borrower: Pragati Design Services
+Evidence ID: ev_msme_005_udyam
+Status: available
+
+Demo document content generated from synthetic profile metadata. No OCR, external registry lookup, or real customer data is used.
+Source mapping: credit_file:msme_005 -> evidence:ev_msme_005_udyam -> score_component:identity_verification, compliance_discipline
+
+
+This document was generated from synthetic profile metadata.
+No OCR, external registry lookup, or real customer data is used.
+Generated at: 2026-07-08T11:52:31.907983+00:00

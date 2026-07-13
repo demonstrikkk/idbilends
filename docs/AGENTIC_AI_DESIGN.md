@@ -187,7 +187,7 @@ AI_PROVIDER=mock
 
 The app must work without paid API keys.
 
-Phase 3 implementation uses `BaseCopilotProvider` with `MockCopilotProvider`, `GroqCopilotProvider`, and `DisabledCopilotProvider`. Groq structured output and streaming are treated separately:
+Phase 3 implementation uses `BaseCopilotProvider` with `MockCopilotProvider`, `GroqProvider`, and `DisabledCopilotProvider`. Groq structured output and streaming are treated separately:
 
 - `POST /copilot/{msme_id}/brief` returns a final validated JSON object.
 - `GET /copilot/{msme_id}/brief/stream` streams progress and narrative tokens, then emits the same validated object in the final SSE event.
@@ -222,6 +222,8 @@ Every prompt must include:
 
 ```json
 {
+  "id": "brief_001",
+  "msme_id": "msme_001",
   "summary": "...",
   "executive_summary": "...",
   "data_quality_observations": "...",
@@ -235,7 +237,10 @@ Every prompt must include:
   "recommended_human_action": "...",
   "decision_support_only": true,
   "cited_internal_inputs": ["msme_profile:msme_001", "score_output:score_001"],
-  "trace": []
+  "provider": "mock",
+  "prompt_version": "credit_copilot_v1",
+  "trace": [],
+  "created_at": "2026-07-06T10:00:00Z"
 }
 ```
 
@@ -283,6 +288,7 @@ Trace step example:
   "step_name": "data_quality_node",
   "step_type": "agent_node",
   "status": "success",
+  "duration_ms": 420,
   "input_refs": ["msme_profile:msme_001", "score_output:score_001"],
   "notes": "Generated data-quality observations."
 }

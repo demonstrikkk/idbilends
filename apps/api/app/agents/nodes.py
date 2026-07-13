@@ -1,3 +1,4 @@
+import time
 from uuid import uuid4
 
 from app.agents.schemas import CopilotConfidence, NodeOutput, TraceStep
@@ -5,15 +6,16 @@ from app.agents.state import CopilotState
 from app.agents.tools import execute_tool
 
 
-def _trace(step_name: str, input_refs: list[str], notes: str) -> TraceStep:
+def _trace(step_name: str, input_refs: list[str], notes: str, duration_ms: int | None = None, status: str = "success") -> TraceStep:
     return TraceStep(
         step_id=f"trace_{uuid4().hex[:10]}",
         step_name=step_name,
         step_type="agent_node",
-        status="success",
+        status=status,
         input_refs=input_refs,
         output_ref=f"node_output:{step_name}",
         notes=notes,
+        duration_ms=duration_ms,
     )
 
 
@@ -25,6 +27,37 @@ def _confidence(data_confidence: int) -> CopilotConfidence:
     if data_confidence >= 55:
         return CopilotConfidence.medium
     return CopilotConfidence.low
+
+
+def _run_node_safe(state: CopilotState, name: str, fn, *args, **kwargs) -> CopilotState:
+    t0 = time.perf_counter()
+    try:
+        result = fn(state, *args, **kwargs)
+        elapsed = int((time.perf_counter() - t0) * 1000)
+        trace = _trace(name, state["context"].cited_internal_inputs, f"Node '{name}' completed.", duration_ms=elapsed)
+        return {
+            **result,
+            "trace": [*result.get("trace", []), trace],
+        }
+    except Exception as exc:
+        elapsed = int((time.perf_counter() - t0) * 1000)
+        error_code = type(exc).__name__
+        trace = _trace(name, state["context"].cited_internal_inputs, f"Node '{name}' failed: {exc}", duration_ms=elapsed, status="failure")
+        state.setdefault("errors", []).append(f"{name}: {error_code}: {exc}")
+        return {
+            **state,
+            "node_outputs": {
+                **state.get("node_outputs", {}),
+                name: {
+                    "summary": f"Node skipped due to error: {exc}",
+                    "confidence": CopilotConfidence.low,
+                    "assumptions": ["Node encountered an error and produced partial output."],
+                    "recommended_human_action": "Review the error and retry the agent workflow.",
+                    "cited_internal_inputs": state.get("context", {}).cited_internal_inputs if hasattr(state.get("context"), "cited_internal_inputs") else [],
+                },
+            },
+            "trace": [*state.get("trace", []), trace],
+        }
 
 
 def data_quality_node(state: CopilotState) -> CopilotState:
@@ -103,21 +136,42 @@ def risk_investigator_node(state: CopilotState) -> CopilotState:
 
 
 async def lending_brief_node(state: CopilotState, provider) -> CopilotState:
-    brief = await provider.generate_structured_brief(state["context"])
-    provider_trace = TraceStep(
-        step_id=f"trace_{uuid4().hex[:10]}",
-        step_name="generate_structured_brief",
-        step_type="provider",
-        status="success",
-        input_refs=state["context"].cited_internal_inputs,
-        output_ref=f"copilot_brief:{brief.id}",
-        notes=f"Generated final structured brief using {provider.provider_name}.",
-    )
-    return {
-        **state,
-        "final_brief": brief,
-        "trace": [*state.get("trace", []), provider_trace],
-    }
+    t0 = time.perf_counter()
+    try:
+        brief = await provider.generate_structured_brief(state["context"])
+        elapsed = int((time.perf_counter() - t0) * 1000)
+        provider_trace = TraceStep(
+            step_id=f"trace_{uuid4().hex[:10]}",
+            step_name="generate_structured_brief",
+            step_type="provider",
+            status="success",
+            input_refs=state["context"].cited_internal_inputs,
+            output_ref=f"copilot_brief:{brief.id}",
+            notes=f"Generated final structured brief using {provider.provider_name}.",
+            duration_ms=elapsed,
+        )
+        return {
+            **state,
+            "final_brief": brief,
+            "trace": [*state.get("trace", []), provider_trace],
+        }
+    except Exception as exc:
+        elapsed = int((time.perf_counter() - t0) * 1000)
+        provider_trace = TraceStep(
+            step_id=f"trace_{uuid4().hex[:10]}",
+            step_name="generate_structured_brief",
+            step_type="provider",
+            status="failure",
+            input_refs=state["context"].cited_internal_inputs,
+            error_code=type(exc).__name__,
+            notes=f"Provider '{provider.provider_name}' failed: {exc}",
+            duration_ms=elapsed,
+        )
+        state.setdefault("errors", []).append(f"lending_brief_node: {type(exc).__name__}: {exc}")
+        return {
+            **state,
+            "trace": [*state.get("trace", []), provider_trace],
+        }
 
 
 def _with_output(state: CopilotState, name: str, output: NodeOutput, notes: str) -> CopilotState:
