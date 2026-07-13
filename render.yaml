@@ -18,7 +18,7 @@ services:
       - key: LOG_LEVEL
         value: INFO
       - key: DATABASE_URL
-        value: sqlite+pysqlite:///:memory:
+        value: "sqlite+pysqlite:///:memory:"
       - key: SERVICE_VERSION
         value: 0.1.0
 
