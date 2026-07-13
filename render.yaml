@@ -12,7 +12,7 @@ services:
         fromService:
           name: lendsignal-web
           type: web
-          property: url
+          property: host
       - key: AI_PROVIDER
         value: ""
       - key: LOG_LEVEL
@@ -32,6 +32,6 @@ services:
         fromService:
           name: lendsignal-api
           type: web
-          property: url
+          property: host
       - key: NEXT_PUBLIC_APP_NAME
         value: LendSignal 360

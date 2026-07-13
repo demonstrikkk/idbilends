@@ -2,7 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   async headers() {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+    let apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+    if (apiBaseUrl && !apiBaseUrl.startsWith("http://") && !apiBaseUrl.startsWith("https://")) {
+      apiBaseUrl = `https://${apiBaseUrl}`;
+    }
     const connectSources = [
       "'self'",
       apiBaseUrl,
